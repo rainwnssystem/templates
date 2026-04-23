@@ -1,4 +1,4 @@
 # templates
 useful templates
 
-![](https://ghview.dya.codes/templates.png)
+![](https://ghview.dya.codes/view/templates)
