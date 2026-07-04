@@ -6,6 +6,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.preprocessing import LabelEncoder
 
+device = "cuda" if os.environ.get("SM_NUM_GPUS", "0") != "0" else "cpu"
+
 
 # def compress(channel_dir: str) -> pd.DataFrame:
 #     with zipfile.ZipFile(f'{channel_dir}/dataset.zip') as zf:
@@ -45,6 +47,7 @@ def train(args):
         n_estimators=args.n_estimators,
         max_depth=args.max_depth,
         learning_rate=args.lr,
+        device=device,
         random_state=42,
     )
     model.fit(x_train, y_train)

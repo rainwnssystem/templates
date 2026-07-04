@@ -12,6 +12,8 @@ import os, subprocess
 MODEL_FILE = "xgboost-model.json"
 LABEL_ENCODER_FILE = "label_encoder.joblib"
 
+device = "cuda" if os.environ.get("SM_NUM_GPUS", "0") != "0" else "cpu"
+
 
 def compress(channel_dir: str) -> pd.DataFrame:
     with zipfile.ZipFile(f'{channel_dir}/dataset.zip') as zf:
@@ -46,6 +48,7 @@ def train(args):
         n_estimators=args.n_estimators,
         max_depth=args.max_depth,
         learning_rate=args.learning_rate,
+        device=device,
         random_state=42,
     )
     model.fit(x_train, y_train)

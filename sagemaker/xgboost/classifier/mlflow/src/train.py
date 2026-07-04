@@ -12,6 +12,8 @@ from sklearn.metrics import accuracy_score, classification_report
 MODEL_FILE = "xgboost-model.json"
 LABEL_ENCODER_FILE = "label_encoder.joblib"
 
+device = "cuda" if os.environ.get("SM_NUM_GPUS", "0") != "0" else "cpu"
+
 
 def load_dataset(channel_dir: str) -> pd.DataFrame:
     zips = [f for f in os.listdir(channel_dir) if f.endswith(".zip")]
@@ -82,6 +84,7 @@ def main():
             n_estimators=args.n_estimators,
             max_depth=args.max_depth,
             learning_rate=args.learning_rate,
+            device=device,
             random_state=42,
         )
         model.fit(x_train, y_train)

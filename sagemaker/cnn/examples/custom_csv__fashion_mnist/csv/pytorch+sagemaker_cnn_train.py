@@ -5,19 +5,76 @@ import json
 import logging
 import os
 import zipfile
+import struct
 
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from PIL import Image
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
+from torchvision import transforms
+from torch.utils.data import DataLoader, Dataset
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info(f'Device: {device}')
+
+class CustomDataset(Dataset):
+    def __init__(self, features, label):
+        # (N, 784) -> (N, 1, 28, 28)
+        self.features = torch.tensor(features, dtype=torch.float32).reshape(-1, 1, 28, 28)  # (N, C, W, H)
+        self.label = torch.tensor(label, dtype=torch.long)
+
+    def __len__(self):
+        return len(self.features)
+
+    def __getitem__(self, index):
+        return self.features[index], self.label[index]
+
+
+class CNN(nn.Module):
+    def __init__(self, num_classes=10):
+        super().__init__()
+        self.features = nn.Sequential(
+            # (channel count, output_features, kernel)
+            # e.g. (3, 32, 3)  -> 3 channel(RGB), 32 -> 64 -> ..., 3 kernel
+            nn.Conv2d(1, 32, 3, padding=1, bias=False),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2),
+
+            # (prev layer output_features, output_features * 2, kernel)
+            # e.g. (32, 64, 3) -> 32 prev output_features, output_features(32)*2=64, 3 kernel 
+            nn.Conv2d(32, 64, 3, padding=1, bias=False),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2),
+
+            nn.Conv2d(64, 128, 3, padding=1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2),
+
+            nn.Conv2d(128, 256, 3, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2),
+        )
+
+        self.classifier = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Flatten(),
+            nn.Linear(256, 256),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.3),
+            nn.Linear(256, num_classes)
+        )
+
+    def forward(self, x):
+        return self.classifier(self.features(x))
 
 
 class DNN(nn.Module):
@@ -28,7 +85,7 @@ class DNN(nn.Module):
 
             # input_features: pixel 수(32 * 32 = 3072)
             # output_features: 1024 / 2 / 2 ..
-            nn.Linear(3072, 1024),
+            nn.Linear(784, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(inplace=True),
             nn.Dropout(0.3),
@@ -58,30 +115,32 @@ def compression(args):
 
 
 def train(args):
-    train_transform = transforms.Compose([
-        transforms.Resize((32, 32)),
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2),
-        transforms.ToTensor(),
-        transforms.Normalize((0.491, 0.482, 0.446), (0.247, 0.243, 0.261))
+
+    transform = transforms.Compose([
+        transforms.ToTensor(),  # PIL Image, Numpy array -> PyTorch Tensor
+        transforms.Resize((28, 28)),
+        transforms.Normalize((0.2860,), (0.3530,))
     ])
 
-    test_transform = transforms.Compose([
-        transforms.Resize((32, 32)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.491, 0.482, 0.446), (0.247, 0.243, 0.261))
-    ])
+    train_df = pd.read_csv(f'{args.train}/fashion-mnist_train.csv')
+    test_df = pd.read_csv(f'{args.train}/fashion-mnist_test.csv')
 
-    train_dataset = datasets.ImageFolder(root=f'{args.train}/train', transform=train_transform)
-    test_dataset  = datasets.ImageFolder(root=f'{args.train}/test',  transform=test_transform)
+    x_train = train_df.iloc[:, 1:].values
+    y_train = train_df.iloc[:, 0].values
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.workers)
-    test_loader  = DataLoader(test_dataset,  batch_size=args.batch_size, shuffle=False, num_workers=args.workers)
+    x_test = test_df.iloc[:, 1:].values
+    y_test = test_df.iloc[:, 0].values
 
-    logger.info("====== Model loaded ======")
+    x_train = x_train / 255.0
+    x_test = x_test / 255.0
 
-    model = DNN().to(device)
+    train_dataset = CustomDataset(x_train, y_train)
+    test_dataset = CustomDataset(x_test, y_test)
+
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+
+    model = CNN().to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -161,16 +220,23 @@ def train(args):
 
 
 def save_model(model, model_dir):
-    logger.info("Saving the model...")
-
     path = os.path.join(model_dir, "model.pth")
     torch.save(model.cpu().state_dict(), path)
+    logger.info("Saving the model...")
 
 
 # required for inference
+
+def predict_fn(input_data, model):
+    device = next(model.parameters()).device
+    input_data = input_data.to(device)
+    with torch.inference_mode():
+        return model(input_data)
+
+
 def model_fn(model_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = DNN()
+    model = CNN()
     model.load_state_dict(
         torch.load(os.path.join(model_dir, "model.pth"), map_location=device)
     )
@@ -180,9 +246,9 @@ def model_fn(model_dir):
 
 
 _inference_transform = transforms.Compose([
-    transforms.Resize((32, 32)),
+    transforms.Resize((28, 28)),
     transforms.ToTensor(),
-    transforms.Normalize((0.491, 0.482, 0.446), (0.247, 0.243, 0.261))
+    transforms.Normalize((0.2860, ), (0.3530, ))
 ])
 
 
@@ -191,7 +257,7 @@ def input_fn(request_body, content_type):
     if content_type == "application/json":
         data = json.loads(request_body)
         img_bytes = base64.b64decode(data["image"])
-        image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+        image = Image.open(io.BytesIO(img_bytes)).convert("L")
         return _inference_transform(image).unsqueeze(0)
 
     # base64 string (no JSON wrap)  → Body: "<base64 string>"
@@ -199,12 +265,12 @@ def input_fn(request_body, content_type):
         if isinstance(request_body, bytes):
             request_body = request_body.decode("utf-8")
         img_bytes = base64.b64decode(request_body)
-        image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+        image = Image.open(io.BytesIO(img_bytes)).convert("L")
         return _inference_transform(image).unsqueeze(0)
 
     # raw bytes  → Body: raw image bytes
     if content_type in ("image/png", "image/jpeg"):
-        image = Image.open(io.BytesIO(request_body)).convert("RGB")
+        image = Image.open(io.BytesIO(request_body)).convert("L")
         return _inference_transform(image).unsqueeze(0)
 
     raise ValueError(f"Unsupported content type: {content_type}")

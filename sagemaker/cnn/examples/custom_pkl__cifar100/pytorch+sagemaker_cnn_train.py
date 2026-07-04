@@ -5,14 +5,16 @@ import json
 import logging
 import os
 import zipfile
-import copy
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from PIL import Image
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, Subset, random_split
+from torch.utils.data import DataLoader, Dataset
+from sklearn.model_selection import train_test_split
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -20,20 +22,49 @@ logger.setLevel(logging.DEBUG)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info(f'Device: {device}')
 
+MEAN = [-0.1309, -0.1705, -0.2517]
+STD = [0.5924, 0.5669, 0.5778]
 
-MEAN = [0.4862, 0.4534, 0.4154]
-STD = [0.2626, 0.2559, 0.2586]
+W, H, C = 32, 32, 3
+
+
+class CustomDataset(Dataset):
+    def __init__(self, data, transform=None):
+        self.images = data[b'data']
+        self.labels = data[b'fine_labels']
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        image = self.images[idx]
+        label = self.labels[idx]
+
+        if len(image.shape) == 1:
+            image = image.reshape(C, W, H).transpose(1, 2, 0)
+
+        image = Image.fromarray(image)
+
+        if self.transform:
+            image = self.transform(image)
+
+        return image, torch.tensor(label)
 
 
 class CNN(nn.Module):
-    def __init__(self, num_classes=2):
+    def __init__(self, num_classes=100):
         super().__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(3, 32, 3, padding=1, bias=False),
+            # (channel count, output_features, kernel)
+            # e.g. (3, 32, 3)  -> 3 channel(RGB), 32 -> 64 -> ..., 3 kernel
+            nn.Conv2d(C, 32, 3, padding=1, bias=False),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(2),
 
+            # (prev layer output_features, output_features * 2, kernel)
+            # e.g. (32, 64, 3) -> 32 prev output_features, output_features(32)*2=64, 3 kernel 
             nn.Conv2d(32, 64, 3, padding=1, bias=False),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
@@ -67,42 +98,39 @@ def compression(args):
     with zipfile.ZipFile(f'{args.train}/dataset.zip', 'r') as zip_ref:
         zip_ref.extractall(f'{args.train}/')
 
-    logger.info("====== Dataset loaded ======")
+
+def unpickle(file):
+    import pickle
+    with open(file, 'rb') as fo:
+        dict = pickle.load(fo, encoding='bytes')
+    return dict
 
 
 def train(args):
     train_transform = transforms.Compose([
-        transforms.Resize((128, 128)),
-        transforms.RandomCrop(128, padding=4),
+        transforms.Resize((W, H)),
+        transforms.RandomCrop((W, H), padding=4),
         transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2),
+        # transforms.ColorJitter(brightness=0.2, contrast=0.2),
         transforms.ToTensor(),
         transforms.Normalize(MEAN, STD)
     ])
 
     test_transform = transforms.Compose([
-        transforms.Resize((128, 128)),
+        transforms.Resize((W, H)),
         transforms.ToTensor(),
         transforms.Normalize(MEAN, STD)
     ])
 
-    full_train = datasets.ImageFolder(root=f'{args.train}/', transform=train_transform)
-    full_test = datasets.ImageFolder(root=f'{args.train}/', transform=test_transform)
+    train = unpickle(f'{args.train}/train')
+    test = unpickle(f'{args.train}/test')
 
-    # Dataset에서 일부만 사용, 5000개 랜덤 샘플링
-    indices = torch.randperm(len(full_train))[:5000].tolist()
-
-    split = int(0.8 * len(indices))
-    train_indices = indices[:split]
-    test_indices = indices[split:]
-
-    train_dataset = Subset(full_train, train_indices)
-    test_dataset = Subset(full_test, test_indices)
+    train_dataset = CustomDataset(train, train_transform)
+    test_dataset = CustomDataset(test, test_transform)
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.workers)
-    test_loader  = DataLoader(test_dataset,  batch_size=args.batch_size, shuffle=False, num_workers=args.workers)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.workers)
 
-    logger.info("====== Model loaded ======")
     model = CNN().to(device)
 
     criterion = nn.CrossEntropyLoss()
@@ -190,6 +218,14 @@ def save_model(model, model_dir):
 
 
 # required for inference
+
+def predict_fn(input_data, model):
+    device = next(model.parameters()).device
+    input_data = input_data.to(device)
+    with torch.inference_mode():
+        return model(input_data)
+
+
 def model_fn(model_dir):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = CNN()
@@ -202,7 +238,7 @@ def model_fn(model_dir):
 
 
 _inference_transform = transforms.Compose([
-    transforms.Resize((128, 128)),
+    transforms.Resize((32, 32)),
     transforms.ToTensor(),
     transforms.Normalize(MEAN, STD),
 ])

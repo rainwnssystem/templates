@@ -10,6 +10,8 @@ import base64
 from PIL import Image
 import io
 
+device = "cuda" if os.environ.get("SM_NUM_GPUS", "0") != "0" else "cpu"
+
 
 def compress(channel_dir: str) -> pd.DataFrame:
     with zipfile.ZipFile(f'{channel_dir}/dataset.zip') as zf:
@@ -45,6 +47,7 @@ def train(args):
         max_depth=args.max_depth,
         learning_rate=args.learning_rate,
         tree_method="hist",
+        device=device,
         enable_categorical=True,
         random_state=42,
     )
