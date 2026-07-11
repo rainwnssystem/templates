@@ -1,2 +1,2 @@
-# templates
+# AWS Templates
 useful templates
