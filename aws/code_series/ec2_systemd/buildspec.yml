@@ -1,0 +1,22 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      golang: 1.26
+  pre_build:
+    commands:
+      - go vet ./...
+  build:
+    commands:
+      - |
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o product
+      - ls -lh product
+      - chmod +x scripts/*.sh
+
+artifacts:
+  files:
+    - appspec.yml
+    - product
+    - product.service
+    - scripts/**/*
