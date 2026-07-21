@@ -1,4 +1,5 @@
 _bp_temp
+_workspace/**/*
 .claude/
 .opencode/
 CLAUDE.md
