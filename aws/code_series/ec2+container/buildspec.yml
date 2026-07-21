@@ -22,7 +22,6 @@ phases:
       - IMAGE_TAG=`echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -b 1-6`
   build:
     commands:
-      - |
       - echo Building the Docker image...
       - docker build -t $ECR_REPO_NAME:$IMAGE_TAG .
       - docker tag $ECR_REPO_NAME:$IMAGE_TAG $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG

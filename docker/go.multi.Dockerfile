@@ -1,4 +1,4 @@
-FROM alpine AS build
+FROM public.ecr.aws/docker/library/alpine AS build
 
 RUN apk add --no-cache go
 

@@ -9,8 +9,7 @@ phases:
       - go vet ./...
   build:
     commands:
-      - |
-        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o product
+      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o product
       - ls -lh product
       - chmod +x scripts/*.sh
 

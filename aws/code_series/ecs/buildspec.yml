@@ -1,0 +1,36 @@
+version: 0.2
+
+env:
+  variables:
+    ACCOUNT_ID: ""
+    AWS_REGION: "us-east-1"
+    ECR_REPO_NAME: ""
+    ECS_CONTAINER_NAME: ""
+    # IMAGE_TAG: "1.0.0"
+
+artifacts:
+  files:
+    - imagedefinitions.json
+
+phases:
+  install:
+    runtime-versions:
+      golang: 1.26
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - IMAGE_TAG=`echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -b 1-6`
+  build:
+    commands:
+      - echo Building the binary...
+      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main
+      - echo Building the Docker image...
+      - docker build -t $ECR_REPO_NAME:$IMAGE_TAG .
+      - docker tag $ECR_REPO_NAME:$IMAGE_TAG $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
+  post_build:
+    commands:
+      - echo Build completed.
+      - echo Pushing the Docker image...
+      - docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
+      - printf '[{"name":"%s","imageUri":"%s"}]' $ECS_CONTAINER_NAME $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG > imagedefinitions.json
