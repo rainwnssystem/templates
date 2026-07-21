@@ -1,5 +1,6 @@
 _bp_temp
 _workspace/**/*
+!_workspace/.gitkeep
 .claude/
 .opencode/
 CLAUDE.md
