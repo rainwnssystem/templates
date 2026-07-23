@@ -8,7 +8,7 @@ sudo tar -C /usr/local -xzf "go${GO_VERSION}.linux-amd64.tar.gz"
 
 rm "go${GO_VERSION}.linux-amd64.tar.gz"
 
-cat >> ~/.bashrc << 'PROFILE'
+cat >> ~/.bashrc <<PROFILE
 export PATH=/usr/local/go/bin:$HOME/go/bin:$PATH
 PROFILE
 
