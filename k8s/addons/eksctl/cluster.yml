@@ -1,0 +1,111 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: <CLUSTER_NAME>
+  region: ap-northeast-2
+  version: <K8S_VERSION>
+  tags:
+    karpenter.sh/discovery: <CLUSTER_NAME>
+
+karpenter:
+  version: "1.3.3"
+  createServiceAccount: true
+  defaultInstanceProfile: "KarpenterNodeInstanceProfile"
+  withSpotInterruptionQueue: false
+
+vpc:
+  id: vpc-11111
+  subnets:
+    private:
+      ap-northeast-2a:
+        id: <SUBNET_A>
+      ap-northeast-2b:
+        id: <SUBNET_B>
+  # Private Access
+  clusterEndpoints:
+    privateAccess: true
+    publicAccess: false
+
+# K8s Secret KMS Encryption
+secretsEncryption:
+  keyARN: <EKS_KMS_KEY>
+
+managedNodeGroups:
+  - name: <NODEGROUP_NAME>
+    labels:
+      dedicated: app
+    amiFamily: Bottlerocket
+    instanceType: t3.medium
+    instanceName: <INSTANCE_NAME>
+    minSize: 2
+    maxSize: 24
+    desiredCapacity: 2
+    volumeSize: 20
+    privateNetworking: true
+    taints:
+      - key: dedicated
+        value: "app"
+        effect: NoSchedule
+    iam:
+      withAddonPolicies:
+        imageBuilder: true
+        autoScaler: true
+        certManager: true
+        ebs: true
+        fsx: true
+        efs: true 
+        cloudWatch: true
+
+fargateProfiles:
+  - name: <FARGATE_NAME>
+    selectors:
+      - namespace: <NS>
+        labels:
+          fargate: app
+
+iam:
+  withOIDC: true
+  serviceAccounts:
+    - metadata:
+        name: aws-load-balancer-controller
+        namespace: kube-system
+      wellKnownPolicies:
+        awsLoadBalancerController: true
+    - metadata:
+        name: fluentbit
+        namespace: kube-system
+      wellKnownPolicies:
+        cloudwatch: true
+  podIdentityAssociations:
+    - serviceAccountName: fluentbit
+      namespace: kube-system
+      createServiceAccount: true
+      roleARN: <ROLE_ARN>
+      # wellKnownPolicies:
+      #   cloudwatch: true
+
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["*"]
+    # enableTypes: ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+
+addonsConfig:
+  autoApplyPodIdentityAssociations: true
+addons:
+  - name: coredns
+  - name: kube-proxy
+  - name: eks-pod-identity-agent  # required for `iam.podIdentityAssociations`
+  - name: vpc-cni
+    # podIdentityAssociations:
+    #   - serviceAccountName: aws-node
+    #     permissionPolicyARNs: ["arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"]
+  - name: aws-ebs-csi-driver
+    # podIdentityAssociations:
+    #   - serviceAccountName: aws-ebs-csi-driver
+    #     permissionPolicyARNs: ["arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"]
+  - name: amazon-cloudwatch-observability
+    configurationValues: "\"containerLogs\": { \"enabled\": false }"
+    # podIdentityAssociations:
+    #   - serviceAccountName: cloudwatch-agent
+    #     permissionPolicyARNs: ["arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"]

@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: product
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list:
+      product=658986583341.dkr.ecr.ap-northeast-2.amazonaws.com/product
+    argocd-image-updater.argoproj.io/product.update-strategy: latest
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ws
+  project: default
+  source:
+    repoURL: https://github.com/rainwnssystem/app
+    path: infra
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

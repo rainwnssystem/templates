@@ -1,0 +1,8 @@
+podLabels:
+  app: node-exporter
+
+tolerations:
+  - key: dedicated
+    value: app
+    operator: Equal
+    effect: NoSchedule

@@ -1,0 +1,14 @@
+curl -s https://raw.githubusercontent.com/karmada-io/karmada/master/hack/install-cli.sh | sudo bash -s kubectl-karmada
+
+aws eks update-kubeconfig --name ws-control --kubeconfig ./control.kubeconfig
+aws eks update-kubeconfig --name ws-prod --kubeconfig ./prod.kubeconfig
+
+sudo kubectl karmada init --kubeconfig ~/control.kubeconfig
+
+sudo kubectl karmada --kubeconfig=/etc/karmada/karmada-apiserver.config get clusters
+
+
+
+kubectl apply -f nginx.yml 등을
+--kubeconfig /etc/karmada/karmada-apiserver.config 에 해야 연결된 member 클러스터에 배포됨
+-> karmada etcd에 저장되었다 다른 클러스터로 배포하기 때문

@@ -1,0 +1,36 @@
+server:
+  persistentVolume:
+    storageClass: gp2
+
+alertmanager:
+  persistence:
+    storageClass: gp2
+
+prometheus:
+  enabled: true
+  serviceAccount:
+    create: false
+    name: s3
+  thanosService:
+    enabled: true
+  prometheusSpec:
+    externalLabels:
+      cluster: prometheus-1
+    thanos:
+      objectStorageConfig:
+        existingSecret:
+          key: objstore.yml
+          name: s3-secret
+
+grafana:
+  adminUser: admin
+  adminPassword: admin
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/load-balancer-name: ws-thanos-alb
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/subnets: subnet-031722f0a586436c6,subnet-02541f4bfd4f7815b
+    path: /

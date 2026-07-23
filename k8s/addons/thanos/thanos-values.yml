@@ -1,0 +1,38 @@
+global:
+  storageClass: gp2
+
+objstoreConfig: |-
+  type: S3
+  config:
+    bucket: ws-thanos-metric-bucket-103
+    endpoint: s3.ap-northeast-2.amazonaws.com
+    region: ap-northeast-2
+
+query:
+  stores:
+    - prometheus-kube-prometheus-thanos-discovery:10901
+  replicaCount: 2
+  serviceAccount:
+    create: false
+    name: s3
+
+bucketweb:
+  enabled: true
+  serviceAccount:
+    create: false
+    name: s3
+
+compactor:
+  enabled: true
+  serviceAccount:
+    create: false
+    name: s3
+
+storegateway:
+  enabled: true
+  serviceAccount:
+    create: false
+    name: s3
+
+ruler:
+  enabled: false

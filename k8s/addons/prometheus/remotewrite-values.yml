@@ -1,0 +1,12 @@
+server:
+  remoteWrite:
+  - url: "http://mimir-nginx.mimir/api/v1/push"
+    headers:
+      "X-Scope-OrgID": "common"  # for multi tenant
+#    basic_auth:
+#      username: <your_grafana_cloud_prometheus_username>
+#      password: <your_grafana_cloud_access_policy_token>
+  service:
+    type: LoadBalancer
+  persistentVolume:
+    storageClass: gp2

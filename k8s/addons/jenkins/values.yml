@@ -1,0 +1,15 @@
+controller:
+  admin:
+    username: admin
+    password: password
+
+  ingress:
+    enabled: true
+    port: 80
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/load-balancer-name: jenkins
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/subnets: subnet-05b36c8af8c814135,subnet-03aec1597371e9cb1
+    path: "/*"

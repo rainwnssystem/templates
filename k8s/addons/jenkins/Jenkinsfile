@@ -1,0 +1,47 @@
+pipeline {
+agent {
+    kubernetes {
+      //defaultContainer 'kaniko'
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccount: ecr
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command:
+    - sleep
+    args:
+    - infinity
+"""
+    }
+  }
+
+    environment {
+        REPO = 'rainwnssystem/app'
+        ECR_REPO = '658986583341.dkr.ecr.ap-northeast-2.amazonaws.com/product'
+        ECR_CREDENTIALS_ID = 'ecr:ap-northeast-2:ecr-credential'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: "https://github.com/${REPO}.git"
+            }
+        }
+
+        stage('Build and Push to ECR') {
+            steps {
+                script {
+                    def commitId = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    env.COMMIT_ID = commitId
+
+                    container('kaniko'){
+                        sh "executor --dockerfile `pwd`/Dockerfile --context `pwd` --destination=${ECR_REPO}:${env.COMMIT_ID} --destination=${ECR_REPO}:latest"
+                    }
+                }
+            }
+        }
+    }
+}

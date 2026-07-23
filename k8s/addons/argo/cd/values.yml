@@ -1,0 +1,17 @@
+configs:
+  cm:
+    timeout.reconciliation: 30s
+  params:
+    server.insecure: true
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    annotations:
+      alb.ingress.kubernetes.io/load-balancer-name: argo-alb
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/subnets: subnet-088465cdf220ed618,subnet-01fa89987ada11e6e
+    extraHosts:
+      - argo-alb-1764359838.ap-northeast-2.elb.amazonaws.com

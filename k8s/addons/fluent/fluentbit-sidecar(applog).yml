@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentbit-config
+  namespace: wsi
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush        1
+        Daemon       Off
+        Log_Level    info
+        Parsers_File parsers.conf
+
+    [INPUT]
+        Name        tail
+        Path        /var/log/<APP_NAME>*.log
+        Parser      docker
+        Tag         product
+
+    [OUTPUT]
+        Name cloudwatch_logs
+        Match   product
+        region ap-northeast-2
+        log_group_name /wsi/webapp/product
+        log_stream_prefix log-${POD_NAME}  # Downward API 환경변수 사용
+        # log_stream_name log  # log_stream_prefix 대신 쓸 수 있음
+        auto_create_group On
+
+  parsers.conf: |
+    [PARSER]
+        Name   docker
+        Format json
+        Time_Key time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep On
+        Decode_Field_As   escaped_utf8    log
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product
+  namespace: wsi
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: product
+  template:
+    metadata:
+      labels:
+        app: product
+    spec:
+      serviceAccountName: fluentbit
+      tolerations:
+			  - key: dedicated
+				  value: app
+					effect: NoSchedule
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nodeType
+                    operator: In
+                    values:
+                      - app
+      containers:
+        - name: app
+          image: 658986583341.dkr.ecr.ap-northeast-2.amazonaws.com/product
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: app-logs
+              mountPath: /var/log  # app 컨테이너의 로그를 fluent-bit와 공유하기 위해서
+        - name: fluentbit
+          image: public.ecr.aws/aws-observability/aws-for-fluent-bit:stable  # 또는 fluent/fluent-bit:latest
+          env:
+	          - name: POD_NAME  # Downward API로 k8s metadata 환경변수로 가져오기
+		          valueFrom:
+					      fieldRef:
+						      fieldPath: metadata.name
+          volumeMounts:
+            - name: app-logs
+              mountPath: /var/log  # app 컨테이너의 로그를 접근하기 위해서
+            - name: fluent-bit-config
+              mountPath: /fluent-bit/etc
+      volumes:
+        - name: app-logs
+          emptyDir: {}  # app, fluent-bit간에 공유하기 위해서
+        - name: fluent-bit-config
+          configMap:
+            name: fluentbit-config  # configmap 공유
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product
+  namespace: wsi
+spec:
+  selector:
+    app: product
+  ports:
+    - port: 8080
+      targetPort: 8080

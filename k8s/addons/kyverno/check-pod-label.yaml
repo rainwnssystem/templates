@@ -1,0 +1,20 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: worldskills-label-policy
+  namespace: wsi
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: worldskills-label
+      match:
+        resources:
+          kinds:
+            - Pod
+      validate:
+        message: "Pod must have an 'worldskills' label."
+        pattern:
+          metadata:
+            labels:
+              worldskills: korea

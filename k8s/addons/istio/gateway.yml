@@ -1,0 +1,19 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: wsi
+  namespace: wsi
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-name: wsi-bookinfo-alb
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-subnets: <PUB_SUB_A,B>
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+spec:
+  gatewayClassName: amazon-vpc-lattice
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes: # 모든 namespace의 HTTPRoute를 허용
+        namespaces:
+          from: All

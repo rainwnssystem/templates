@@ -1,0 +1,302 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: <NAMESPACE>
+  labels:
+    elbv2.k8s.aws/pod-readiness-gate-inject: enabled
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: <APP>
+  namespace: <NAMESPACE>
+  labels:
+    app: <APP>
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: <APP>
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: <APP>
+    spec:
+      terminationGracePeriodSeconds: 60
+      serviceAccountName: <APP>
+      restartPolicy: Always
+      # nodeSelector:
+      #   dedicated: app
+      tolerations:
+        - key: dedicated
+          value: app
+          effect: NoExecute
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: <APP>
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: dedicated
+                    operator: In
+                    values:
+                      - app
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - <APP>
+                topologyKey: topology.kubernetes.io/zone
+              weight: 100
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - <APP>
+                topologyKey: kubernetes.io/hostname
+              weight: 99
+      containers:
+        - name: <APP>
+          image: <IMAGE>
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "45"]
+          resources:
+            requests:
+              cpu: "0.5"
+              memory: 100Mi
+            limits:
+              memory: 200Mi
+          livenessProbe:
+            tcpSocket:
+              port: http
+            timeoutSeconds: 30
+            successThreshold: 1
+            failureThreshold: 3
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /healthcheck
+              port: <PORT>
+            failureThreshold: 30
+            timeoutSeconds: 5
+            successThreshold: 1
+            periodSeconds: 1
+          # env:
+          # - name: DB_HOST
+          #   valueFrom:
+          #     configMapKeyRef:
+          #       name: <APP>
+          #       key: DB_HOST
+          # - name: DB_PASS
+          #   valueFrom:
+          #     secretKeyRef:
+          #       name: <APP>
+          #       key: DB_PASS
+          # - name: DB_USER
+          #   value: dbuser
+          ports:
+            - containerPort: 8080
+              name: http
+---
+# kind: ConfigMap
+# apiVersion: v1
+# metadata:
+#   name: <APP>
+#   namespace: <NAMESPACE>
+# data:
+#   key: default
+# ---
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: <APP>
+#   namespace: <NAMESPACE>
+# type: Opaque
+# stringData:
+#   DB_PASS: hello
+# ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: <APP>
+  namespace: <NAMESPACE>
+spec:
+  selector:
+    app: <APP>
+  type: ClusterIP
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: <APP>
+  namespace: <NAMESPACE>
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: <APP>
+  minReplicas: 2
+  maxReplicas: 64
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 4
+          periodSeconds: 15
+      selectPolicy: Max
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: <APP>
+  namespace: <NAMESPACE>
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: <APP>
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: <APP>
+  namespace: <NAMESPACE>
+spec:
+  podSelector:
+    matchLabels:
+      app: <APP>
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: <APP>
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: <NAMESPACE>
+
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.10.0/24
+              - 10.0.11.0/24
+              - 10.0.12.0/24
+---
+# apiVersion: projectcalico.org/v3
+# kind: NetworkPolicy
+# metadata:
+#   name: <APP>
+#   namespace: <NAMESPACE>
+# spec:
+#   selector: app == '<APP>'
+#   ingress:
+#     # Allow traffic from specific container
+#     - action: Allow
+#       source:
+#         selector: app == '<APP>'
+#         namespaceSelector: projectcalico.org/name == '<NAMESPACE>'
+
+#     # Make it controlled by security group and block inner-cluster traffic
+#     - action: Allow
+#       source:
+#         nets: ['0.0.0.0/0']
+#         notNets: # Inner-cluster ips
+#           - 10.0.10.0/24
+#           - 10.0.11.0/24
+#           - 10.0.12.0/24
+---
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: <APP>
+#   namespace: <NAMESPACE>
+# spec:
+#   podSelector:
+#     matchLabels:
+#       app: <APP>
+#   policyTypes:
+#     - Ingress
+#   ingress:
+#     - from:
+#       - podSelector:
+#           matchLabels:
+#             app: <APP>
+#         namespaceSelector:
+#           matchLabels:
+#             kubernetes.io/metadata.name: <NAMESPACE>
+
+#       - ipBlock: # <- 클러스터 외부 콜은 허용
+#           cidr: 0.0.0.0/0
+#           except:
+#             - 10.0.10.0/24
+#             - 10.0.11.0/24
+#             - 10.0.12.0/24
+---
+# apiVersion: vpcresources.k8s.aws/v1beta1
+# kind: SecurityGroupPolicy
+# metadata:
+#   name: <APP>
+#   namespace: <NAMESPACE>
+# spec:
+#   podSelector:
+#     matchLabels:
+#       app: <APP>
+#   securityGroups:
+#     groupIds:
+#       - sg-0ea3daad2e55a0147

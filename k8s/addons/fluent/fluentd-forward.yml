@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: fluentd
+  template:
+    metadata:
+      labels:
+        app: fluentd
+    spec:
+      serviceAccountName: fluentd
+      tolerations:
+        - key: dedicated
+          value: app
+          effect: NoSchedule
+      containers:
+        - name: fluentd
+          image: fluent/fluentd-kubernetes-daemonset:v1.18-debian-cloudwatch-1
+          volumeMounts:
+            - name: fluentd-config
+              mountPath: /fluentd/etc
+      volumes:
+        - name: fluentd-config
+          configMap:
+            name: fluentd-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluentd
+  namespace: kube-system
+spec:
+  selector:
+    app: fluentd
+  ports:
+    - port: 24224
+      targetPort: 24224
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: kube-system
+data:
+  fluent.conf: |
+    <source>
+      @type forward
+      bind 0.0.0.0
+      port 24224
+    </source>
+
+    <match product>
+      @type cloudwatch_logs
+      region ap-northeast-2
+      log_group_name /wsi/webapp/product
+      log_stream_name product-logs
+      auto_create_stream true
+    </match>
+
+    <match customer>
+      @type cloudwatch_logs
+      region ap-northeast-2
+      log_group_name /wsi/webapp/customer
+      log_stream_name customer-logs
+      auto_create_stream true
+    </match>
+
+    <match **>  # 위 match pattern에 하나도 맞지 않을 경우 여기로 옴
+      @type cloudwatch_logs
+      region ap-northeast-2
+      log_group_name /wsi/webapp/logs
+      log_stream_name logs
+      auto_create_stream true
+    </match>

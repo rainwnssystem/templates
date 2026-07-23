@@ -1,0 +1,2 @@
+opensearchHosts: "http://opensearch-cluster-master.elk.svc.cluster.local:9200"
+replicaCount: 1

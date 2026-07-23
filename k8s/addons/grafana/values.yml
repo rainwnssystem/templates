@@ -1,0 +1,9 @@
+adminUser: admin
+adminPassword: password
+
+service:
+  type: LoadBalancer
+
+persistence:
+  enabled: true
+  storageClassName: gp2

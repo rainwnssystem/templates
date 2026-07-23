@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product
+  namespace: wsi
+  labels:
+    app: product
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: product
+  template:
+    metadata:
+      labels:
+        app: product
+    spec:
+      nodeSelector:
+        dedicated: app
+      tolerations:
+        - key: dedicated
+          value: app
+          effect: NoSchedule
+      containers:
+        - name: product
+          image: 658986583341.dkr.ecr.ap-northeast-2.amazonaws.com/product
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: 100Mi
+              cpu: 100m
+            limits:
+              memory: 100Mi
+              cpu: 100m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product
+  namespace: wsi
+spec:
+  selector:
+    app: product
+  ports:
+    - name: product
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: product
+  namespace: wsi
+spec:
+  hostnames:
+    - product.dyacode.me
+  parentRefs:
+    - name: wsi-gw
+      sectionName: http
+  rules:
+    - backendRefs:
+        - name: product
+          kind: Service
+          port: 8080
+      matches:
+        - path:
+            type: PathPrefix
+            value: /healthz
+---
+apiVersion: application-networking.k8s.aws/v1alpha1
+kind: TargetGroupPolicy
+metadata:
+  name: product
+  namespace: wsi
+spec:
+  targetRef:
+    group: ""
+    kind: Service
+    name: product
+  protocol: HTTP
+  protocolVersion: HTTP1
+  healthCheck:
+    enabled: true
+    intervalSeconds: 5
+    timeoutSeconds: 5
+    healthyThresholdCount: 3
+    unhealthyThresholdCount: 2
+    path: "/healthz"
+    port: 8080
+    protocol: HTTP
+    protocolVersion: HTTP1
+    statusMatch: "200"
+---
+apiVersion: elbv2.k8s.aws/v1beta1
+kind: TargetGroupBinding
+metadata:
+  name: product
+  namespace: wsi
+spec:
+  serviceRef:
+    name: product
+    port: 8080
+  targetGroupARN: arn:aws:elasticloadbalancing:ap-northeast-2:658986583341:targetgroup/wsi-tg-product/13a3b997f9a58f18

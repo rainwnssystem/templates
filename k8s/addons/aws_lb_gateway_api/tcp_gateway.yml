@@ -1,0 +1,73 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: aws-nlb
+spec:
+  controllerName: gateway.k8s.aws/nlb
+---
+apiVersion: gateway.k8s.aws/v1
+kind: TargetGroupConfiguration
+metadata:
+  name: wsi-tcp
+  namespace: wsi
+spec:
+  targetReference:
+    group: ""
+    kind: Service
+    name: product       # Service name
+  defaultConfiguration:
+    targetGroupName: wsi-tg
+    targetType: ip
+    healthCheckConfig:
+      healthCheckProtocol: TCP
+    tags:
+      project: wsi
+      owner: boseok
+---
+apiVersion: gateway.k8s.aws/v1
+kind: LoadBalancerConfiguration
+metadata:
+  name: wsi-tcp
+  namespace: wsi
+spec:
+  loadBalancerName: wsi-nlb
+  scheme: internet-facing
+  sourceRanges:
+    - 0.0.0.0/0
+  tags:
+    project: wsi
+    owner: boseok
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: wsi-tcp
+  namespace: wsi
+spec:
+  gatewayClassName: aws-nlb
+  infrastructure:
+    parametersRef:
+      group: gateway.k8s.aws
+      kind: LoadBalancerConfiguration
+      name: wsi-tcp
+  listeners:
+    - name: tcp
+      protocol: TCP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TCPRoute
+metadata:
+  name: wsi-tcp
+  namespace: wsi
+spec:
+  parentRefs:
+    - name: wsi-tcp
+      sectionName: tcp
+  rules:
+    - backendRefs:
+        - name: product
+          port: 8080

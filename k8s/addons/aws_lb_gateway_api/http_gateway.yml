@@ -1,0 +1,84 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: aws-alb
+spec:
+  controllerName: gateway.k8s.aws/alb
+---
+apiVersion: gateway.k8s.aws/v1
+kind: TargetGroupConfiguration
+metadata:
+  name: product
+  namespace: wsi
+spec:
+  targetReference:
+    name: product        # Service name
+  defaultConfiguration:
+    targetType: ip
+    targetGroupName: product
+    healthCheckConfig:
+      healthCheckPath: /healthz
+      healthCheckInterval: 5
+      healthyThresholdCount: 2
+      healthCheckTimeout: 2
+      unhealthyThresholdCount: 2
+      matcher:
+        httpCode: "200"
+    targetGroupAttributes:
+      - key: deregistration_delay.timeout_seconds
+        value: "50"
+    tags:
+      project: wsi
+      owner: boseok
+---
+apiVersion: gateway.k8s.aws/v1
+kind: LoadBalancerConfiguration
+metadata:
+  name: wsi-http
+  namespace: wsi
+spec:
+  loadBalancerName: wsi-alb
+  scheme: internet-facing
+  sourceRanges:
+    - 0.0.0.0/0
+  tags:
+    project: wsi
+    owner: boseok
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: wsi-http
+  namespace: wsi
+spec:
+  gatewayClassName: aws-alb
+  infrastructure:
+    parametersRef:
+      group: gateway.k8s.aws
+      kind: LoadBalancerConfiguration
+      name: wsi-http
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: product
+  namespace: wsi
+spec:
+  parentRefs:
+    - name: wsi-http    # Gateway name
+      sectionName: http
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /product
+      backendRefs:
+        - name: product
+          port: 8080

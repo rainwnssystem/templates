@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: product
+  namespace: ws
+spec:
+  replicas: 2
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: product
+  template:
+    metadata:
+      labels:
+        app: product
+    spec:
+      containers:
+      - name: app
+        image: 658986583341.dkr.ecr.ap-northeast-2.amazonaws.com/product
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+  strategy:
+    blueGreen:
+      activeService: product
+      #previewService: product-green
+      autoPromotionEnabled: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product
+  namespace: ws
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-path: /healthcheck
+spec:
+  selector:
+    app: product
+  ports:
+    - port: 8080
+      targetPort: 8080

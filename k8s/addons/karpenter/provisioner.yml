@@ -1,0 +1,68 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: default
+spec:
+  ##### maxPods로 Pod 개수를 지정 #####
+  kubelet:
+    maxPods: 7
+  amiFamily: <AMI_FAMILY>  # AL2023 | Bottlerocket
+  role: "KarpenterNodeRole-<CLUSTER_NAME>"
+  subnetSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: "<CLUSTER_NAME>"
+  securityGroupSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: "<CLUSTER_NAME>"
+  amiSelectorTerms:
+    - id: "<EC2_AMI>"
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      ebs:
+        volumeSize: 8Gi
+        volumeType: gp3
+        iops: 2000
+  tags:
+    Name: <NODE_NAMETAG>
+    eks.amazonaws.com/nodegroup: <MNG_NAMETAG>
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: app
+spec:
+  template:
+    metadata:
+      labels:
+        dedicated: app
+    spec:
+      taints:
+        - key: dedicated
+          value: app
+          effect: NoSchedule
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+        - key: kubernetes.io/os
+          operator: In
+          values: ["linux"]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand"]
+        - key: karpenter.k8s.aws/instance-family
+          operator: In
+          values: ["t3a"]
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values: ["t3a.medium"]
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: default
+      expireAfter: 720h # 30 * 24h = 720h
+  limits:
+    cpu: 1000
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m

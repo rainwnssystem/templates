@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: product
+  namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: >
+      product=658986583341.dkr.ecr.ap-northeast-2.amazonaws.com/product
+    argocd-image-updater.argoproj.io/product.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/product.helm.image-tag: image.tag
+    argocd-image-updater.argoproj.io/product.update-strategy: latest
+    argocd-image-updater.argoproj.io/write-back-method: argocd
+    argocd-image-updater.argoproj.io/interval: 10s
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  source:
+    repoURL: s3://skills-chart-bucket/product
+    chart: product
+    targetRevision: 0.1.0
+    helm:
+      values: |
+        image:
+          repository: 658986583341.dkr.ecr.ap-northeast-2.amazonaws.com/product
+          tag: v1
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

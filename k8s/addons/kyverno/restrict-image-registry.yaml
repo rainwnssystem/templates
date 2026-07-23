@@ -1,0 +1,20 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-image-registry
+  namespace: wsi
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: restrict-image-registry
+      match:
+        resources:
+          kinds:
+            - Pod
+      validate:
+        message: "Images must be pulled from 'ghcr.io'."
+        pattern:
+          spec:
+            containers:
+              - image: "ghcr.io/*"
