@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-only-external
+  namespace: app
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:  # match Pod traffic allow OR external traffic allow
+      - podSelector:
+          matchLabels:
+            app: frontend
+        namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: app
+
+      - ipBlock: 
+          cidr: 0.0.0.0/0  # 클러스터 외부 콜은 허용
+          except:
+            - 10.0.10.0/24
+            - 10.0.11.0/24
+            - 10.0.12.0/24
