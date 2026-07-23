@@ -1,0 +1,14 @@
+{
+  "TableName": "users",
+  "Item": {
+      "name": {
+          "S": "$input.params('name')"
+      },
+      "age": {
+          "N": "$input.params('age')"
+      },
+      "country": {
+          "S": "$input.params('country')"
+      }
+  }
+}

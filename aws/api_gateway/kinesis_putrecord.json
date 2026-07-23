@@ -1,0 +1,5 @@
+{
+  "Data": "$util.base64Encode($input.body)",
+  "PartitionKey": "$context.requestId",
+  "StreamName": "wsi-data-stream"
+}

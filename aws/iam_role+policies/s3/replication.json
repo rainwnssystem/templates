@@ -1,0 +1,36 @@
+// Inline policy
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Statement1",
+      "Effect": "Allow",
+      "Action": [
+        "s3:*",
+        "kms:Decrypt",
+        "kms:Encrypt"
+      ],
+      "Resource": [
+        "*"
+      ]
+    }
+  ]
+}
+
+
+// trusted policy
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": [
+          "s3.amazonaws.com",
+          "batchoperations.s3.amazonaws.com"
+        ]
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}

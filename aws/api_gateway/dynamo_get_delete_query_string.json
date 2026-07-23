@@ -1,0 +1,8 @@
+{ 
+    "TableName": "users",
+    "Key": {
+        "name": { 
+            "S": "$input.params('name')"
+        }
+    }
+}
