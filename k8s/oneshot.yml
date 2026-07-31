@@ -299,4 +299,4 @@ spec:
 #       app: <APP>
 #   securityGroups:
 #     groupIds:
-#       - sg-0ea3daad2e55a0147
+#       - <SECURITY_GROUP_ID>
