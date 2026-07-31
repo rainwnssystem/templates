@@ -1,0 +1,31 @@
+replicaCount: 1
+createClusterRoles: false
+extraArgs:
+  - "--interval"
+  - "10s"
+
+serviceAccount:
+  create: false
+  name: argocd-image-updater
+
+config:
+  log.level: info
+  git.user: argo-image-updater
+  git.email: argocd@example.com
+  registries:
+    - api_url: https://<ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com
+      prefix: <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com
+      credentials: ext:/scripts/ecr-login.sh
+      credsexpire: 11h
+      name: ECR
+      ping: true
+      default: true
+      insecure: false
+
+authScripts:
+  enabled: true
+  scripts:
+    ecr-login.sh: |
+      #!/bin/sh
+      export HOME=/tmp
+      aws ecr --region "<REGION>" get-authorization-token --output text --query 'authorizationData[].authorizationToken' | base64 -d

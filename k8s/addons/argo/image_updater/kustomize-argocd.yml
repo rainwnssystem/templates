@@ -1,0 +1,15 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: <APP>
+  namespace: argocd
+spec:
+  writeBackConfig:
+    method: argocd # argocd | git
+  applicationRefs:
+    - namePattern: <APP>  # Using glob (e.g. product-*)
+      images:
+        - alias: <APP>
+          imageName: <IMAGE_URL>
+          commonUpdateSettings:
+            updateStrategy: newest-build # semver | newest-build | digest | alphabetical

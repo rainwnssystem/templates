@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: <APP>
+  namespace: argocd
+spec:
+  destination:
+    namespace: <NAMESPACE>
+    server: https://kubernetes.default.svc
+  ignoreDifferences:
+    - group: apps
+      jsonPointers:
+        - /spec/replicas
+        - /metadata/annotations/deployment.kubernetes.io/revision
+      kind: Deployment
+    - group: autoscaling
+      jsonPointers:
+        - /status
+      kind: HorizontalPodAutoscaler
+    - jsonPointers:
+        - /data
+      kind: Secret
+  project: default
+  source:
+    path: manifest
+    repoURL: <REPO_URL>
+    targetRevision: HEAD  # <BRANCH> | HEAD , If use WriteBack, enter the branch
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - RespectIgnoreDifferences=true
+      - ApplyOutOfSyncOnly=true
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - PruneLast=true
