@@ -200,4 +200,6 @@ resource "aws_cloudtrail" "default" {
       values = ["arn:aws:s3:::${module.guardduty_bucket.s3_bucket_id}/"]
     }
   }
+
+  depends_on = [module.guardduty_bucket]
 }

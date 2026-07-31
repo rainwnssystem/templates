@@ -40,11 +40,11 @@ module "eks_blueprints_addons" {
         env = merge(
           {
             # Security Groups for Pods
-            ENABLE_POD_ENI                    = "true"
+            # ENABLE_POD_ENI                    = "true"
             POD_SECURITY_GROUP_ENFORCING_MODE = "standard"
 
             # Prefix Delegation
-            ENABLE_PREFIX_DELEGATION = "true"
+            # ENABLE_PREFIX_DELEGATION = "true"
             WARM_PREFIX_TARGET       = "1"
           },
           local.enable_calico ? {
@@ -54,15 +54,23 @@ module "eks_blueprints_addons" {
           }
         )
         enableNetworkPolicy = local.enable_calico ? "false" : "true"
+        # init = {
+        #   env = {
+        #     "DISABLE_TCP_EARLY_DEMUX" = "true"
+        #   }
+        # }
       })
     }
     kube-proxy = {
       most_recent = true
     }
-    aws-ebs-csi-driver = {
-      most_recent              = true
-      service_account_role_arn = module.irsa_ebs_csi_driver.arn
-    }
+    # aws-ebs-csi-driver = {
+    #   most_recent              = true
+    #   service_account_role_arn = module.irsa_ebs_csi_driver.arn
+    #   configuration_values = jsonencode({
+    #     controller = { replicaCount = 1 }
+    #   })
+    # }
     amazon-cloudwatch-observability = {
       most_recent              = true
       service_account_role_arn = module.irsa_cloudwatchagent.arn
@@ -100,12 +108,22 @@ module "eks_blueprints_addons" {
   # Argo CD
   ################################################################################
   argocd = {
+    chart_version = "10.2.1"
     values = [<<-EOF
       configs:
         cm:
           timeout.reconciliation: 10s
+        params:
+          server.insecure: true
     EOF
     ]
+  }
+
+  ################################################################################
+  # External Secrets Operator
+  ################################################################################
+  external_secrets = {
+    chart_version = "2.8.0"
   }
 
   ################################################################################
@@ -220,7 +238,7 @@ module "eks_blueprints_addons" {
 
           extraArgs = [
             "--interval",
-            "5s"
+            "10s"
           ]
 
           serviceAccount = {
@@ -233,6 +251,8 @@ module "eks_blueprints_addons" {
 
           config = {
             "log.level" = "info"
+            "git.user" = "argocd-image-updater"
+            "git.email" = "argocd@example.com"
             registries = [{
               name        = "ECR"
               api_url     = "https://${data.aws_caller_identity.caller.account_id}.dkr.ecr.${var.region}.amazonaws.com"
@@ -250,6 +270,7 @@ module "eks_blueprints_addons" {
             scripts = {
               "ecr-login.sh" = <<-EOT
                 #!/bin/sh
+                export HOME=/tmp
                 aws ecr --region "${var.region}" get-authorization-token --output text --query 'authorizationData[].authorizationToken' | base64 -d
               EOT
             }
