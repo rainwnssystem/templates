@@ -1,0 +1,35 @@
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system   # istio-system = mesh 전체 | <NAMESPACE> = 해당 ns
+spec:
+  mtls:
+    mode: STRICT            # STRICT | PERMISSIVE | DISABLE
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: <NAMESPACE>
+spec: {}
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: <APP>
+  namespace: <NAMESPACE>
+spec:
+  selector:
+    matchLabels:
+      app: <APP>
+  action: ALLOW             # ALLOW | DENY | AUDIT | CUSTOM
+  rules:
+    - from:
+        - source:
+            principals:
+              - cluster.local/ns/<NAMESPACE>/sa/<SERVICE_ACCOUNT>
+      to:
+        - operation:
+            methods: ["GET", "POST"]
+            paths: ["/api/*"]

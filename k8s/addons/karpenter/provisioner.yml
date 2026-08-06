@@ -1,61 +1,31 @@
-apiVersion: karpenter.k8s.aws/v1
-kind: EC2NodeClass
-metadata:
-  name: default
-spec:
-  ##### maxPods로 Pod 개수를 지정 #####
-  kubelet:
-    maxPods: 7
-  amiFamily: <AMI_FAMILY>  # AL2023 | Bottlerocket
-  role: "KarpenterNodeRole-<CLUSTER_NAME>"
-  subnetSelectorTerms:
-    - tags:
-        karpenter.sh/discovery: "<CLUSTER_NAME>"
-  securityGroupSelectorTerms:
-    - tags:
-        karpenter.sh/discovery: "<CLUSTER_NAME>"
-  amiSelectorTerms:
-    - id: "<EC2_AMI>"
-  blockDeviceMappings:
-    - deviceName: /dev/xvda
-      ebs:
-        volumeSize: 8Gi
-        volumeType: gp3
-        iops: 2000
-  tags:
-    Name: <NODE_NAMETAG>
-    eks.amazonaws.com/nodegroup: <MNG_NAMETAG>
----
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: app
+  namespace: karpenter
 spec:
   template:
     metadata:
       labels:
         dedicated: app
     spec:
+      requirements:
+        - key: kubernetes.io/os
+          operator: In
+          values:
+            - linux
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values:
+            - "on-demand"  # on-demand | spot | reserved
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values:
+            - t3.medium
       taints:
         - key: dedicated
           value: app
-          effect: NoSchedule
-      requirements:
-        - key: kubernetes.io/arch
-          operator: In
-          values: ["amd64"]
-        - key: kubernetes.io/os
-          operator: In
-          values: ["linux"]
-        - key: karpenter.sh/capacity-type
-          operator: In
-          values: ["on-demand"]
-        - key: karpenter.k8s.aws/instance-family
-          operator: In
-          values: ["t3a"]
-        - key: node.kubernetes.io/instance-type
-          operator: In
-          values: ["t3a.medium"]
+          effect: NoExecute
       nodeClassRef:
         group: karpenter.k8s.aws
         kind: EC2NodeClass
@@ -66,3 +36,28 @@ spec:
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 1m
+---
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: default
+spec:
+  # kubelet:
+  #   maxPods: 110
+  detailedMonitoring: true
+  amiFamily: Bottlerocket  # AL2 | AL2023 | Bottlerocket
+  role: "<KARPENTER_NODE_ROLE_NAME>"
+  tags:
+    Name: <NODE_NAMETAG>
+    eks.amazonaws.com/nodegroup: <MNG_NAMETAG>
+    owner: boseok
+    project: wsi
+  amiSelectorTerms:
+    # - id: "<EC2_AMI>"
+    - alias: "al2023@latest"  # al2 | al2023 | bottlerocket
+  subnetSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: "<CLUSTER_NAME>"
+  securityGroupSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: "<CLUSTER_NAME>"

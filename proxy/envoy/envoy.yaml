@@ -1,0 +1,55 @@
+# Admin interface: /config_dump, /stats, /clusters, /ready
+admin:
+  address:
+    socket_address:
+      address: 127.0.0.1
+      port_value: 9901
+
+static_resources:
+
+  # Listeners: where Envoy accepts traffic (downstream)
+  listeners:
+    - name: listener_0
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 10000
+      filter_chains:
+        - filters:
+            # Network filter (L4): envoy.filters.network.http_connection_manager | tcp_proxy | redis_proxy
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                codec_type: AUTO   # AUTO | HTTP1 | HTTP2 | HTTP3
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: local_service
+                      domains: ["*"]
+                      routes:
+                        - match:
+                            prefix: "/"   # prefix | path | safe_regex
+                          route:
+                            cluster: service_backend
+                # HTTP filters (L7): router must be last
+                http_filters:
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  # Clusters: where Envoy sends traffic (upstream)
+  clusters:
+    - name: service_backend
+      connect_timeout: 0.25s
+      type: STATIC             # STATIC | STRICT_DNS | LOGICAL_DNS | EDS
+      lb_policy: ROUND_ROBIN   # ROUND_ROBIN | LEAST_REQUEST | RANDOM | RING_HASH
+      load_assignment:
+        cluster_name: service_backend
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: 127.0.0.1
+                      port_value: 8080

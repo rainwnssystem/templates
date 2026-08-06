@@ -76,12 +76,12 @@ spec:
           image: public.ecr.aws/aws-observability/aws-for-fluent-bit:stable  # 또는 fluent/fluent-bit:latest
           env:
 	          - name: POD_NAME  # Downward API로 k8s metadata 환경변수로 가져오기
-		          valueFrom:
-					      fieldRef:
-						      fieldPath: metadata.name
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           volumeMounts:
             - name: app-logs
-              mountPath: /var/log  # app 컨테이너의 로그를 접근하기 위해서
+              mountPath: /var/log  # app 컨테이너의 로그에 접근하기 위해서
             - name: fluent-bit-config
               mountPath: /fluent-bit/etc
       volumes:

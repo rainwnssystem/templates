@@ -19,18 +19,22 @@ module "eks" {
     # }
   }
 
+  node_security_group_tags = {
+    "karpenter.sh/discovery" = "${var.project_name}-cluster"
+  }
+
   eks_managed_node_groups = {
-    tools = {
+    managed = {
       # BOTTLEROCKET_ARM_64
       # BOTTLEROCKET_x86_64
       # AL2023_ARM_64_STANDARD
       # AL2023_x86_64_STANDARD
       # AL2_ARM_64
 
-      name            = "${var.project_name}-nodegroup-tools"
-      ami_type        = "BOTTLEROCKET_ARM_64"
-      instance_types  = ["c6g.large"]
-      iam_role_name   = "${var.project_name}-ng-tools"
+      name            = "${var.project_name}-nodegroup-managed"
+      ami_type        = "BOTTLEROCKET_x86_64"
+      instance_types  = ["c5.large"]
+      iam_role_name   = "${var.project_name}-ng-managed"
       use_name_prefix = false
 
       # AL2023
@@ -51,65 +55,13 @@ module "eks" {
       }
 
       launch_template_tags = {
-        Name  = "${var.project_name}-node-tools"
+        Name  = "${var.project_name}-node-managed"
         owner = "boseok"
+        project = "wsi"
       }
 
       labels = {
-        dedicated = "tools"
-      }
-
-      metadata_options = {
-        http_endpoint               = "enabled"
-        http_put_response_hop_limit = 1
-        http_tokens                 = "required"
-      }
-    }
-
-    apps = {
-      name = "${var.project_name}-nodegroup-apps"
-      # BOTTLEROCKET_ARM_64
-      # BOTTLEROCKET_x86_64
-      # AL2023_ARM_64_STANDARD
-      # AL2023_x86_64_STANDARD
-      # AL2_ARM_64
-      ami_type        = "BOTTLEROCKET_ARM_64"
-      instance_types  = ["c6g.xlarge"]
-      iam_role_name   = "${var.project_name}-ng-apps"
-      use_name_prefix = false
-
-      # AL2023
-      # bootstrap_extra_args = "--use-max-pods false --kubelet-extra-args '--max-pods=110'"
-
-      # BOTTLEROCKET
-      # bootstrap_extra_args = <<-EOF
-      #   [settings.kubernetes]
-      #   max-pods = 110
-      # EOF
-
-      min_size     = 2
-      max_size     = 27
-      desired_size = 2
-
-      node_repair_config = {
-        enabled = true
-      }
-
-      launch_template_tags = {
-        Name  = "${var.project_name}-node-apps"
-        owner = "boseok"
-      }
-
-      labels = {
-        dedicated = "app"
-      }
-
-      taints = {
-        dedicated = {
-          key    = "dedicated"
-          value  = "app"
-          effect = "NO_EXECUTE"
-        }
+        dedicated = "managed"
       }
 
       metadata_options = {
@@ -127,6 +79,17 @@ module "eks" {
       to_port     = "443"
       cidr_blocks = [local.vpc_cidr]
       type        = "ingress"
+    }
+  }
+
+  node_security_group_additional_rules = {
+    calico-apiserver = {
+      type                          = "ingress"
+      protocol                      = "tcp"
+      from_port                     = "5443"
+      to_port                       = "5443"
+      source_cluster_security_group = true
+      description                   = "API server to node calico apiserver"
     }
   }
 

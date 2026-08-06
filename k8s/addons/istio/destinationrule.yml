@@ -1,0 +1,26 @@
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: <APP>
+  namespace: <NAMESPACE>
+spec:
+  host: <K8S_SERVICE_NAME>
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_REQUEST   # ROUND_ROBIN | LEAST_REQUEST | RANDOM | PASSTHROUGH
+      # consistentHash:  # soft session affinity
+      #   httpCookie:
+      #     name: <COOKIE_NAME>
+      #     ttl: 3600s
+    # outlierDetection:
+    #   consecutive5xxErrors: 5
+    #   interval: 10s
+    #   baseEjectionTime: 30s
+    #   maxEjectionPercent: 10
+    # connectionPool:
+    #   tcp:
+    #     maxConnections: 100
+    #     connectTimeout: 10s
+    #   http:
+    #     http1MaxPendingRequests: 100
+    #     maxRequestsPerConnection: 10

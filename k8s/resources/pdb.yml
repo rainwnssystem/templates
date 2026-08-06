@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nginx
+  namespace: wsi
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: nginx

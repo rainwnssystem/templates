@@ -1,7 +1,7 @@
 #!/bin/bash
 
 GO_VERSION="1.26.3"
-ARCH="arm64"  # amd64 | arm64
+ARCH="amd64"  # amd64 | arm64
 
 curl -LO "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz"
 

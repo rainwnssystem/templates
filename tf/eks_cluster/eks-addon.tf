@@ -1,6 +1,3 @@
-################################################################################
-# Add-on Toggles
-################################################################################
 locals {
   enable_argocd                       = false
   enable_argocd_image_updater         = false
@@ -8,12 +5,14 @@ locals {
   enable_kube_prometheus_stack        = false
   enable_aws_gateway_api_controller   = false
   enable_karpenter                    = false
-  enable_metrics_server               = true
   enable_cluster_autoscaler           = false
+  enable_metrics_server               = true
   enable_aws_load_balancer_controller = true
   enable_external_secrets             = false
   enable_aws_for_fluentbit            = false
   enable_fargate_fluentbit            = false
+  enable_kyverno                      = false
+  enable_descheduler                  = false
 }
 
 module "eks_blueprints_addons" {
@@ -71,6 +70,13 @@ module "eks_blueprints_addons" {
     #     controller = { replicaCount = 1 }
     #   })
     # }
+    # aws-efs-csi-driver = {
+    #   most_recent              = true
+    #   service_account_role_arn = module.irsa_efs_csi_driver.arn
+    #   configuration_values = jsonencode({
+    #     controller = { replicaCount = 1 }
+    #   })
+    # }
     amazon-cloudwatch-observability = {
       most_recent              = true
       service_account_role_arn = module.irsa_cloudwatchagent.arn
@@ -91,9 +97,9 @@ module "eks_blueprints_addons" {
   enable_aws_for_fluentbit            = local.enable_aws_for_fluentbit
   enable_fargate_fluentbit            = local.enable_fargate_fluentbit
 
-  ################################################################################
+  ###########################################################################
   # Kube Prometheus Stack
-  ################################################################################
+  ###########################################################################
   kube_prometheus_stack = {
     values = [<<-EOF
       prometheus:
@@ -104,9 +110,9 @@ module "eks_blueprints_addons" {
     ]
   }
 
-  ################################################################################
+  ###########################################################################
   # Argo CD
-  ################################################################################
+  ###########################################################################
   argocd = {
     chart_version = "10.2.1"
     values = [<<-EOF
@@ -119,16 +125,16 @@ module "eks_blueprints_addons" {
     ]
   }
 
-  ################################################################################
+  ###########################################################################
   # External Secrets Operator
-  ################################################################################
+  ###########################################################################
   external_secrets = {
     chart_version = "2.8.0"
   }
 
-  ################################################################################
+  ###########################################################################
   # AWS Load Balancer Controller
-  ################################################################################
+  ###########################################################################
   aws_load_balancer_controller = {
     chart_version = "3.4.2"
     values = [<<-EOF
@@ -139,10 +145,11 @@ module "eks_blueprints_addons" {
     replace = true
   }
 
-  ################################################################################
+  ###########################################################################
   # AWS Gateway API Controller
-  ################################################################################
+  ###########################################################################
   aws_gateway_api_controller = {
+    chart_version = "v2.1.2"
     values = [<<-EOF
       clusterVpcId: ${aws_vpc.this.id}
       clusterName: ${module.eks.cluster_name}
@@ -151,16 +158,16 @@ module "eks_blueprints_addons" {
     ]
   }
 
-  ################################################################################
+  ###########################################################################
   # Metrics Server
-  ################################################################################
+  ###########################################################################
   metrics_server = {
     replace = true
   }
 
-  ################################################################################
+  ###########################################################################
   # Fargate Fluent Bit
-  ################################################################################
+  ###########################################################################
   fargate_fluentbit_cw_log_group = {
     name            = "/aws/eks/${module.eks.cluster_name}/fargate"
     use_name_prefix = false
@@ -170,9 +177,9 @@ module "eks_blueprints_addons" {
     flb_log_cw = true
   }
 
-  ################################################################################
+  ###########################################################################
   # AWS for Fluent Bit
-  ################################################################################
+  ###########################################################################
   aws_for_fluentbit_cw_log_group = {
     create = false
   }
@@ -197,10 +204,12 @@ module "eks_blueprints_addons" {
     }
   }
 
-  ################################################################################
+  ###########################################################################
   # Cluster Autoscaler
-  ################################################################################
+  ###########################################################################
   cluster_autoscaler = {
+    chart_version = "9.59.0"
+
     values = [<<-EOF
       extraArgs:
         scan-interval: 10s
@@ -210,13 +219,27 @@ module "eks_blueprints_addons" {
         scale-down-unneeded-time: 1m
         node-deletion-delay-timeout: 1m
         node-deletion-batcher-interval: 0s
+        skip-nodes-with-system-pods: false
+        ignore-daemonsets-utilization: true
     EOF
     ]
+      #   balance-similar-node-groups: true
+      #   expander: least-waste
+      # podAnnotations:
+      #   cluster-autoscaler.kubernetes.io/safe-to-evict: false
 
-    set = [{
-      name  = "image.tag"
-      value = "v1.36.0"
-    }]
+    image_tag_override = "v1.36.1"
+    # set = [{
+    #   name  = "image.tag"
+    #   value = "v1.36.1"
+    # }]
+  }
+
+  ###########################################################################
+  # Karpenter
+  ###########################################################################
+  karpenter = {
+    chart_version = "1.14.0"
   }
 
   helm_releases = merge(
@@ -282,45 +305,48 @@ module "eks_blueprints_addons" {
     #########################################################################
     # Descheduler
     #########################################################################
-    {
-      # descheduler = {
-      #   repository = "https://kubernetes-sigs.github.io/descheduler"
-      #   chart      = "descheduler"
+    local.enable_descheduler ? {
+      descheduler = {
+        repository = "https://kubernetes-sigs.github.io/descheduler"
+        chart      = "descheduler"
 
-      #   name      = "descheduler"
-      #   namespace = "kube-system"
+        name      = "descheduler"
+        namespace = "kube-system"
 
-      #   values = [<<-EOF
-      #       kind: Deployment
-      #       schedule: "* * * * *"
-      #     EOF
-      #   ]
-      # }
+        values = [<<-EOF
+            kind: Deployment
+            schedule: "* * * * *"
+          EOF
+        ]
+      }
+    }: {},
 
-      #########################################################################
-      # Kyverno
-      #########################################################################
-      # kyverno = {
-      #   repository = "https://kyverno.github.io/kyverno"
-      #   chart      = "kyverno"
-      #   name       = "kyverno"
+    #########################################################################
+    # Kyverno
+    #########################################################################
+    local.enable_kyverno ? {
+      kyverno = {
+        chart_version = "3.8.2"
+        repository = "https://kyverno.github.io/kyverno"
+        chart      = "kyverno"
+        name       = "kyverno"
 
-      #   create_namespace = true
-      #   namespace        = "kyverno"
+        create_namespace = true
+        namespace        = "kyverno"
 
-      #   values = [<<-EOF
-      #     admissionController:
-      #       replicas: 1
-      #     backgroundController:
-      #       enabled: false
-      #     cleanupController:
-      #       enabled: false
-      #     reportsController:
-      #       enabled: false
-      #     EOF
-      #   ]
-      # }
-    }
+        values = [<<-EOF
+          admissionController:
+            replicas: 1
+          backgroundController:
+            enabled: false
+          cleanupController:
+            enabled: false
+          reportsController:
+            enabled: false
+          EOF
+        ]
+      }
+    } : {}
   )
 }
 
@@ -379,6 +405,17 @@ resource "kubernetes_cluster_role_binding_v1" "aws_node_annotate_pod_ip" {
     name      = "aws-node"
     namespace = "kube-system"
   }
+}
+
+################################################################################
+# Karpenter Access Entry
+################################################################################
+resource "aws_eks_access_entry" "karpenter_nodes" {
+  count = local.enable_karpenter ? 1 : 0
+
+  cluster_name  = module.eks.cluster_name
+  principal_arn = module.eks_blueprints_addons.karpenter.node_iam_role_arn
+  type          = "EC2_LINUX"
 }
 
 ################################################################################
