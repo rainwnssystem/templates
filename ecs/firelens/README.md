@@ -1,3 +1,12 @@
+## 개요
+
+- ECS FireLens는 log-router container를 통해 app container의 로그를 CloudWatch Logs
+등으로 라우팅한다.
+- Firelens를 통해 `cloudwatch` 또는 `cloudwatch_logs` 플러그인으로 로깅한다.
+- 먼저 Task Definition을 logging options 없이 생성한 후, JSON 편집을 통해 아래 작업을 진행한다.
+- Firelens는 ecsTaskExecutionRole이 아닌 **ecsTaskRole**에 `CloudWatchAgentServerPolicy` 가
+필요하다.
+
 ### Output plugin
 
 - **cloudwatch**
@@ -17,13 +26,14 @@
 ### app container
 
 - cloudwatch plugin에서 `$(ecs_task_id)` `$(ecs_cluster)` `$(ecs_task_arn)` 등을 사용한다.
+- `"Name": "cloudwatch"` 인지 확인
 
 ```json
 "logConfiguration": {
 	"logDriver": "awsfirelens",
 	"options": {
 		"log_group_name": "/wsi/app/customer",
-		"log_stream_name": "$(ecs_task_id)",
+		"log_stream_name": "wsi-$(ecs_task_id)",
 		"auto_create_group": "true",
 		"log_key": "log",
 		"region": "ap-northeast-2",
@@ -58,8 +68,7 @@
 
 ### log_router container
 
-- `enable-ecs-log-metadata` 가 true/false인 것에 따라 로그에 ecs metadata를 함께 내보낸다.
-    - 이 옵션이 `true` 여야 cloudwatch 플러그인에서 `$(variable)` 사용이 가능하다.
+- firelens container는 기본적으로 awslogs로 로깅하도록 놔두면 된다.
 
 ```json
 "logConfiguration": {
@@ -72,6 +81,10 @@
 	}
 },
 ```
+
+- `enable-ecs-log-metadata` 가 true/false인 것에 따라 로그에 ecs metadata를 함께 내보낸다.
+    - `ecs_task_arn` , `ecs_task_definition` , `ecs_cluster` , `ec2_instance_id` 등
+    추가적인 항목이 함께 logging된다.
 
 ```json
 "firelensConfiguration": {
@@ -138,7 +151,7 @@ ADD extra.conf /extra.conf
 ```
 
 - 위 filter는 `"log_key": "log"` 를 logConfiguration에 추가해서도 해결 가능하다.
-    - amazon-ecs-firelens-examples/examples/fluent-bit/cloudwatchlogs at mainline · aws-samples/amazon-ecs-firelens-examples
+    - https://github.com/aws-samples/amazon-ecs-firelens-examples/tree/mainline/examples/fluent-bit/cloudwatchlogs
 
 ### parser.conf
 
@@ -176,6 +189,7 @@ ADD extra.conf /extra.conf
 - cloudwatch plugin에서 `$(ecs_task_id)` `$(ecs_cluster)` `$(ecs_task_arn)` 등을 사용한다.
 
 ```json
+...
 "logConfiguration": {
 	"logDriver": "awsfirelens",
 	"options": {
@@ -187,13 +201,16 @@ ADD extra.conf /extra.conf
 		"workers": "1",
 		"Name": "cloudwatch",
 		"retry_limit": "2"
-	}
+	},
+	...
 },
+...
 ```
 
 - 또는 cloudwatch_logs plugin에서 `init-metadata` 를 통해 env를 사용한다.
 
 ```json
+...
 "logConfiguration": {
 	"logDriver": "awsfirelens",
 	"options": {
@@ -205,8 +222,10 @@ ADD extra.conf /extra.conf
 		"workers": "1",
 		"Name": "cloudwatch_logs",
 		"retry_limit": "2"
-	}
+	},
+	...
 },
+...
 ```
 
 - 이제 ECS Service를 생성한 후 Cloudwatch Logs에서 동작을 확인한다.

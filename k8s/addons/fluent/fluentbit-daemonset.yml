@@ -83,29 +83,29 @@ data:
 
     [INPUT]
         Name        tail
-        Path        /var/log/pods/*product*/app/0.log
+        Path        /var/log/pods/*product*/product/0.log
         Parser      docker
         Tag         product
 
     [INPUT]
         Name        tail
-        Path        /var/log/pods/*customer*/app/0.log
+        Path        /var/log/pods/*customer*/customer/0.log
         Parser      docker
         Tag         customer
 
     [OUTPUT]
         Name cloudwatch_logs
         Match product
-        region ap-northeast-2
-        log_group_name /wsi/webapp/product
+        region us-east-1
+        log_group_name /wsi/app/product
         log_stream_prefix logs-
         auto_create_group true
 
     [OUTPUT]
         Name cloudwatch_logs
         Match customer
-        region ap-northeast-2
-        log_group_name /wsi/webapp/customer
+        region us-east-1
+        log_group_name /wsi/app/customer
         log_stream_prefix logs-
         auto_create_group true
 
@@ -117,3 +117,8 @@ data:
         Time_Format %Y/%m/%d - %H:%M:%S
         Time_Keep On
         Decode_Field_As   escaped_utf8    log
+
+    [PARSER]
+        Name   app-regex
+        Format regex
+        Regex  ^(?<year>[^ ]*)-(?<month>[^ ]*)-(?<day>[^ ]*) (?<hour>[^ ]*):(?<minute>[^ ]*):(?<second>[^ ]*),[^ ]* [^ ]* [^ ]* (?<ip>[^ ]*) (?<port>[^ ]*) (?<method>[^ ]*) (?<path>[^ ]*) (?<statuscode>[^ ]*)

@@ -27,6 +27,21 @@ spec:
                     operator: In
                     values:
                       - app
+      initContainers:
+        - name: fluentbit
+          image: public.ecr.aws/aws-observability/aws-for-fluent-bit:stable
+          restartPolicy: Always
+          # env:
+          #   - name: POD_NAME
+          #     valueFrom:
+          #       fieldRef:
+          #         fieldPath: metadata.name
+          volumeMounts:
+            - name: logs
+              readOnly: true
+              mountPath: /var/log/pods
+            - name: fluent-bit-config
+              mountPath: /fluent-bit/etc
       containers:
         - name: app
           image: 658986583341.dkr.ecr.ap-northeast-2.amazonaws.com/product-ecr:latest
@@ -58,19 +73,6 @@ spec:
                 secretKeyRef:
                   name: product
                   key: MYSQL_DBNAME
-        - name: fluentbit
-          image: public.ecr.aws/aws-observability/aws-for-fluent-bit:stable
-          env:
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-          volumeMounts:
-            - name: logs
-              readOnly: true
-              mountPath: /var/log/pods
-            - name: fluent-bit-config
-              mountPath: /fluent-bit/etc
       volumes:
         - name: logs
           hostPath:
@@ -106,7 +108,7 @@ data:
 
     [INPUT]
         Name        tail
-        Path        /var/log/pods/*product*/app/0.log
+        Path        /var/log/pods/*product*/product/0.log
         Parser      docker
         Tag         product
 
@@ -117,10 +119,10 @@ data:
     [OUTPUT]
         Name cloudwatch_logs
         Match   product
-        region ap-northeast-2
-        log_group_name /wsi/webapp/product
-        log_stream_prefix log-${POD_NAME}  # Downward API 환경변수 사용
-        # log_stream_name log  # log_stream_prefix 대신 쓸 수 있음
+        region us-east-1
+        log_group_name /wsi/app/product
+        log_stream_prefix logs-${POD_NAME}  # env Downward API
+        # log_stream_name logs
         auto_create_group On
   parsers.conf: |
     [PARSER]

@@ -1,9 +1,10 @@
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: fluentd
   namespace: kube-system
 spec:
+  replicas: 2
   selector:
     matchLabels:
       app: fluentd
@@ -12,14 +13,10 @@ spec:
       labels:
         app: fluentd
     spec:
-      serviceAccountName: fluentd
-      tolerations:
-        - key: dedicated
-          value: app
-          effect: NoSchedule
+      serviceAccountName: fluentd-sa
       containers:
         - name: fluentd
-          image: fluent/fluentd-kubernetes-daemonset:v1.18-debian-cloudwatch-1
+          image: fluent/fluentd-kubernetes-daemonset:v1.19-debian-cloudwatch-1
           volumeMounts:
             - name: fluentd-config
               mountPath: /fluentd/etc
@@ -55,24 +52,27 @@ data:
 
     <match product>
       @type cloudwatch_logs
-      region ap-northeast-2
-      log_group_name /wsi/webapp/product
-      log_stream_name product-logs
+      region us-east-1
+      log_group_name /wsi/app/product
+      log_stream_name logs-
+      use_log_stream_name_prefix true
       auto_create_stream true
     </match>
 
     <match customer>
       @type cloudwatch_logs
-      region ap-northeast-2
-      log_group_name /wsi/webapp/customer
-      log_stream_name customer-logs
+      region us-east-1
+      log_group_name /wsi/app/customer
+      log_stream_name logs-
+      use_log_stream_name_prefix true
       auto_create_stream true
     </match>
 
     <match **>  # 위 match pattern에 하나도 맞지 않을 경우 여기로 옴
       @type cloudwatch_logs
-      region ap-northeast-2
-      log_group_name /wsi/webapp/logs
-      log_stream_name logs
+      region us-east-1
+      log_group_name /wsi/app/logs
+      log_stream_name logs-
+      use_log_stream_name_prefix true
       auto_create_stream true
     </match>
