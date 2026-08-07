@@ -1,0 +1,134 @@
+regions:
+  - global
+  - us-east-1       # Virginia
+  - us-east-2       # Ohio
+  - ap-northeast-2  # Seoul
+
+blocklist:
+  - "000000000000"
+
+bypass-alias-check-accounts:
+  - 200148130345
+
+settings:
+  IAMRole:
+    IncludeServiceLinkedRoles: false
+  EC2Image:
+    IncludeDisabled: true
+    IncludeDeprecated: true
+    DisableDeregistrationProtection: true
+  EC2Instance:
+    DisableStopProtection: true
+    DisableDeletionProtection: true
+  RDSInstance:
+    DisableDeletionProtection: true
+  CloudFormationStack:
+    DisableDeletionProtection: true
+  DynamoDBTable:
+    DisableDeletionProtection: true
+  CognitoUserPool:
+    DisableDeletionProtection: true
+  DocDBCluster:
+    DisableDeletionProtection: true
+  DSQLCluster:
+    DisableDeletionProtection: true
+  EKSCluster:
+    DisableDeletionProtection: true
+  ELBv2:
+    DisableDeletionProtection: true
+  NeptuneCluster:
+    DisableDeletionProtection: true
+  NeptuneGraph:
+    DisableDeletionProtection: true
+  NeptuneInstance:
+    DisableDeletionProtection: true
+  PinpointPhoneNumber:
+    DisableDeletionProtection: true
+  QLDBLedger:
+    DisableDeletionProtection: true
+
+accounts:
+  200148130345:
+    filters:
+      __global__:
+        - type: regex
+          value: "(?i)(scop|scmp|sams)"
+      CloudTrailTrail:
+        - "mytrail"
+      IAMLoginProfile:
+        - "boseok"
+      IAMPolicy:
+        - type: regex
+          value: "arn:aws:iam::.*:policy/RAM_put_event_policy"
+      IAMRole:
+        - "OrganizationAccountAccessRole"
+      IAMRolePolicyAttachment:
+        - "OrganizationAccountAccessRole -> AdministratorAccess"
+      IAMUser:
+        - "boseok"
+      IAMUserAccessKey:
+        - type: glob
+          value: "boseok -> *"
+      IAMUserPolicyAttachment:
+        - "boseok -> AdministratorAccess"
+
+resource-types:
+  excludes:
+    - S3Object
+    - ServiceCatalogTagOption
+    - ServiceCatalogTagOptionPortfolioAttachment
+    - FMSNotificationChannel
+    - FMSPolicy
+    - MachineLearningMLModel
+    - MachineLearningDataSource
+    - MachineLearningBranchPrediction
+    - MachineLearningEvaluation
+    - RoboMakerSimulationJob
+    - RoboMakerRobotApplication
+    - RoboMakerSimulationApplication
+    - OpsWorksApp
+    - OpsWorksInstance
+    - OpsWorksLayer
+    - OpsWorksUserProfile
+    - OpsWorksCMBackup
+    - OpsWorksCMServer
+    - OpsWorksCMServerState
+    - CodeStarProject
+    - CodeStarConnection
+    - Cloud9Environment
+    - CloudSearchDomain
+    - RedshiftServerlessSnapshot
+    - RedshiftServerlessNamespace
+    - RedshiftServerlessWorkgroup
+    - BedrockCustomModel
+    - BedrockEvaluationJob
+    - BedrockFlowAlias
+    - BedrockModelCustomizationJob
+    - BedrockPrompt
+    - DocDBCluster
+    - DocDBElasticCluster
+    - DocDBInstance
+    - DocDBParameterGroup
+    - DocDBSnapshot
+    - EC2VerifiedAccessEndpoint
+    - EC2VerifiedAccessGroup
+    - EC2VerifiedAccessInstance
+    - EC2VerifiedAccessTrustProvider
+    - ElasticTranscoderPipeline
+    - ElasticTranscoderPreset
+    - InspectorAssessmentRun
+    - InspectorAssessmentTarget
+    - InspectorAssessmentTemplate
+    - LexBot
+    - LexIntent
+    - LexModelBuildingServiceBotAlias
+    - LexSlotType
+    - OSVPCEndpoint
+    - RekognitionDataset
+    - RekognitionProject
+    - SSMQuickSetupConfigurationManager
+    - ShieldProtection
+    - ShieldProtectionGroup
+    - TextractAdapter
+    - TextractAdapterVersion
+    - TranscribeLanguageModel
