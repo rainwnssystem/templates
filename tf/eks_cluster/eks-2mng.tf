@@ -15,6 +15,9 @@ module "eks" {
     #   name = "fargate"
     #   selectors = [{
     #     namespace = "fargate"
+    #     labels = {
+    #       profile = "fargate"
+    #     }
     #   }]
     # }
   }
