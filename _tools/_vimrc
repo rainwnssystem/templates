@@ -1,0 +1,6 @@
+set nobackup
+set noswapfile
+set noundofile
+
+# set paste
+set nu
