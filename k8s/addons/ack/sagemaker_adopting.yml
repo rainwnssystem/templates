@@ -1,0 +1,8 @@
+apiVersion: sagemaker.services.k8s.aws/v1alpha1
+kind: Endpoint
+metadata:
+  name: wsi-cifar100-endpoint2
+  annotations:
+    services.k8s.aws/adoption-policy: "adopt"
+    services.k8s.aws/adoption-fields: |
+      { "endpointName": "wsi-cifar100-endpoint-adopt" }

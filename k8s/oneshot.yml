@@ -82,9 +82,9 @@ spec:
           resources:
             requests:
               cpu: "0.5"
-              memory: 100Mi
+              memory: 1G
             limits:
-              memory: 200Mi
+              memory: 1G
           livenessProbe:
             tcpSocket:
               port: http
@@ -147,6 +147,13 @@ kind: Service
 metadata:
   name: <APP>
   namespace: <NAMESPACE>
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-path: /healthcheck
+    alb.ingress.kubernetes.io/healthcheck-port: '8080'
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "5"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "2"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
 spec:
   selector:
     app: <APP>
@@ -168,7 +175,7 @@ spec:
     kind: Deployment
     name: <APP>
   minReplicas: 2
-  maxReplicas: 64
+  maxReplicas: 16
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 60
@@ -181,10 +188,10 @@ spec:
       policies:
         - type: Percent
           value: 100
-          periodSeconds: 15
+          periodSeconds: 30
         - type: Pods
           value: 4
-          periodSeconds: 15
+          periodSeconds: 30
       selectPolicy: Max
   metrics:
     - type: Resource
@@ -192,7 +199,7 @@ spec:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: 75
+          averageUtilization: 50
     - type: Resource
       resource:
         name: memory
@@ -206,37 +213,10 @@ metadata:
   name: <APP>
   namespace: <NAMESPACE>
 spec:
-  minAvailable: 2
+  minAvailable: 1
   selector:
     matchLabels:
       app: <APP>
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: <APP>
-  namespace: <NAMESPACE>
-spec:
-  podSelector:
-    matchLabels:
-      app: <APP>
-  policyTypes:
-    - Ingress
-  ingress:
-    - from:
-        - podSelector:
-            matchLabels:
-              app: <APP>
-          namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: <NAMESPACE>
-
-        - ipBlock:
-            cidr: 0.0.0.0/0
-            except:
-              - 10.0.10.0/24
-              - 10.0.11.0/24
-              - 10.0.12.0/24
 ---
 # apiVersion: projectcalico.org/v3
 # kind: NetworkPolicy
@@ -287,16 +267,3 @@ spec:
 #             - 10.0.10.0/24
 #             - 10.0.11.0/24
 #             - 10.0.12.0/24
----
-# apiVersion: vpcresources.k8s.aws/v1beta1
-# kind: SecurityGroupPolicy
-# metadata:
-#   name: <APP>
-#   namespace: <NAMESPACE>
-# spec:
-#   podSelector:
-#     matchLabels:
-#       app: <APP>
-#   securityGroups:
-#     groupIds:
-#       - <SECURITY_GROUP_ID>

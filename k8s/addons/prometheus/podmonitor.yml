@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: <APP>
+  namespace: <NAMESPACE>
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: <APP>
+  template:
+    metadata:
+      labels:
+        app: <APP>
+    spec:
+      containers:
+        - name: <APP>
+          image: <IMAGE>
+          ports:
+            - name: metrics
+              containerPort: 8080
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: <APP>
+  namespace: <NAMESPACE>
+spec:
+  selector:
+    matchLabels:
+      app: <APP>
+  podMetricsEndpoints:
+    - port: metrics # ports[].name of container
+      path: /metrics
+      scheme: http
+      interval: 5s
+      scrapeTimeout: 3s # scrapeTimeout < interval

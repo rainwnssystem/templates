@@ -1,0 +1,42 @@
+apiVersion: sagemaker.services.k8s.aws/v1alpha1
+kind: EndpointConfig
+metadata:
+  name: <NAME>
+spec:
+  endpointConfigName: <NAME>
+  productionVariants:
+  - modelName: <MODEL_NAME>
+    variantName: AllTraffic
+    instanceType: ml.m6i.xlarge
+    initialVariantWeight: 1
+    initialInstanceCount: 1
+  dataCaptureConfig:
+    enableCapture: true
+    destinationS3URI: s3://<SAGEMAKER_BUCKET_NAME>/sagemaker/endpoint_config/datacapture
+    initialSamplingPercentage: 100
+    captureOptions:
+    - captureMode: Input
+    - captureMode: Output
+    captureContentTypeHeader:
+      csvContentTypes:
+      - "text/csv"
+      jsonContentTypes:
+      - "application/json"
+  tags:
+    - key: owner
+      value: boseok
+    - key: project
+      value: wsi
+---
+apiVersion: sagemaker.services.k8s.aws/v1alpha1
+kind: Endpoint
+metadata:
+  name: <NAME>
+spec:
+  endpointName: <NAME>
+  endpointConfigName: <NAME>
+  tags:
+    - key: owner
+      value: boseok
+    - key: project
+      value: wsi

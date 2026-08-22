@@ -1,0 +1,13 @@
+serviceAccounts:
+  server:
+    create: false
+    name: amp-sa
+server:
+  remoteWrite:
+    - url: <AMP_ENDPOINT_REMOTEWRITE>
+      sigv4:
+        region: <REGION>
+      queue_config:
+        max_samples_per_send: 1000
+        max_shards: 200
+        capacity: 2500

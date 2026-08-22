@@ -1,0 +1,107 @@
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: product
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: WebApplication
+    spec:
+      name: string
+      namespace: string
+      image: string
+      replicas: integer | default=2
+      ingress:
+        enabled: boolean | default=false
+  resources:
+    - id: deployment
+      template:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${schema.spec.name}
+          namespace: ${schema.spec.namespace}
+          labels:
+            app: ${schema.spec.name}
+        spec:
+          replicas: ${schema.spec.replicas}
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.name}
+            spec:
+              containers:
+                - name: app
+                  image: ${schema.spec.image}
+                  ports:
+                    - containerPort: 8080
+                      name: http
+    - id: service
+      template:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: ${schema.spec.name}
+        spec:
+          selector:
+            app: ${schema.spec.name}
+          type: ClusterIP
+          ports:
+            - name: http
+              protocol: TCP
+              port: 8080
+              targetPort: http
+    - id: ingress
+      includeWhen:
+        - ${schema.spec.ingress.enabled}
+      template:
+        apiVersion: networking.k8s.io/v1
+        kind: Ingress
+        metadata:
+          name: ${schema.spec.name}
+          namespace: ${schema.spec.namespace}
+          annotations:
+            alb.ingress.kubernetes.io/load-balancer-name: ${schema.spec.name}-alb
+            alb.ingress.kubernetes.io/scheme: internet-facing
+            alb.ingress.kubernetes.io/target-type: ip
+        spec:
+          ingressClassName: alb
+          rules:
+            - http:
+                paths:
+                  - path: /product
+                    pathType: Prefix
+                    backend:
+                      service:
+                        name: ${schema.spec.name}
+                        port:
+                          number: 8080
+    - id: table
+      template:
+        apiVersion: dynamodb.services.k8s.aws/v1alpha1
+        kind: Table
+        metadata:
+          name: ${schema.spec.name}
+          namespace: ${schema.spec.namespace}
+        spec:
+          tableName: ${schema.spec.name
+          billingMode: PAY_PER_REQUEST
+          tableClass: STANDARD
+          attributeDefinitions:
+            - attributeName: Id
+              attributeType: S
+          keySchema:
+            - attributeName: Id
+              keyType: HASH
+---
+apiVersion: kro.run/v1alpha1
+kind: WebApplication
+metadata:
+  name: product
+spec:
+  name: product
+  namespace: wsi
+  image: 856210586235.dkr.ecr.us-east-1.amazonaws.com/product:v1.0.0
+  replicas: 2
+  ingress:
+    enabled: false
