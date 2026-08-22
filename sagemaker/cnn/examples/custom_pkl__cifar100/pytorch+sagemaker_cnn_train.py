@@ -31,7 +31,7 @@ W, H, C = 32, 32, 3
 class CustomDataset(Dataset):
     def __init__(self, data, transform=None):
         self.images = data[b'data']
-        self.labels = data[b'fine_labels']
+        self.labels = data[b'fine_labels']  # fine_labels | coarse_labels
         self.transform = transform
 
     def __len__(self):
