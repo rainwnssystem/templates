@@ -8,7 +8,8 @@ blocklist:
   - "000000000000"
 
 bypass-alias-check-accounts:
-  - 200148130345
+  # - 200148130345  # 004
+  - 856210586235  # 003
 
 settings:
   IAMRole:
@@ -48,7 +49,8 @@ settings:
     DisableDeletionProtection: true
 
 accounts:
-  200148130345:
+  856210586235:  # 003
+  # 200148130345:  # 004
     filters:
       __global__:
         - type: regex
@@ -105,6 +107,7 @@ resource-types:
     - BedrockFlowAlias
     - BedrockModelCustomizationJob
     - BedrockPrompt
+    - DynamoDBTableItem
     - DocDBCluster
     - DocDBElasticCluster
     - DocDBInstance
