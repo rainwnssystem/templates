@@ -1,8 +1,7 @@
 regions:
-  - global
-  - us-east-1       # Virginia
-  - us-east-2       # Ohio
-  - ap-northeast-2  # Seoul
+  # - all
+  - __global__
+  - us-east-1
 
 blocklist:
   - "000000000000"
@@ -49,89 +48,61 @@ settings:
     DisableDeletionProtection: true
 
 accounts:
-  856210586235:  # 003
   # 200148130345:  # 004
+  856210586235:  # 003
     filters:
-      __global__:
-        - type: regex
-          value: "(?i)(scop|scmp|sams)"
-      CloudTrailTrail:
-        - "mytrail"
-      IAMLoginProfile:
-        - "boseok"
-      IAMPolicy:
-        - type: regex
-          value: "arn:aws:iam::.*:policy/RAM_put_event_policy"
-      IAMRole:
-        - "OrganizationAccountAccessRole"
-      IAMRolePolicyAttachment:
-        - "OrganizationAccountAccessRole -> AdministratorAccess"
-      IAMUser:
-        - "boseok"
-      IAMUserAccessKey:
-        - type: glob
-          value: "boseok -> *"
-      IAMUserPolicyAttachment:
-        - "boseok -> AdministratorAccess"
+      # __global__:
+      #   - type: regex
+      #     value: "(?i)(scop|scmp|sams)"
+      # CloudTrailTrail:
+      #   - "mytrail"
+      # IAMLoginProfile:
+      #   - "boseok"
+      # IAMPolicy:
+      #   - type: regex
+      #     value: "arn:aws:iam::.*:policy/RAM_put_event_policy"
+      # IAMRole:
+      #   - "OrganizationAccountAccessRole"
+      # IAMRolePolicyAttachment:
+      #   - "OrganizationAccountAccessRole -> AdministratorAccess"
+      # IAMUser:
+      #   - "boseok"
+      # IAMUserAccessKey:
+      #   - type: glob
+      #     value: "boseok -> *"
+      # IAMUserPolicyAttachment:
+      #   - "boseok -> AdministratorAccess"
 
 resource-types:
   excludes:
-    - S3Object
-    - ServiceCatalogTagOption
-    - ServiceCatalogTagOptionPortfolioAttachment
-    - FMSNotificationChannel
-    - FMSPolicy
-    - MachineLearningMLModel
-    - MachineLearningDataSource
-    - MachineLearningBranchPrediction
-    - MachineLearningEvaluation
+    - S3Object # Excluded because S3 bucket removal handles removing all S3Objects
+    - DynamoDBTableItem # Excluded because DynamoDB table removal handles removing all DynamoDBTableItems
+    - ServiceCatalogTagOption # Excluded due to https://github.com/rebuy-de/aws-nuke/issues/515
+    - ServiceCatalogTagOptionPortfolioAttachment # Excluded due to https://github.com/rebuy-de/aws-nuke/issues/515
+    - FMSNotificationChannel # Excluded because it's not available
+    - FMSPolicy # Excluded because it's not available
+    - MachineLearningMLModel # Excluded due to ML being unavailable
+    - MachineLearningDataSource # Excluded due to ML being unavailable
+    - MachineLearningBranchPrediction # Excluded due to ML being unavailable
+    - MachineLearningEvaluation # Excluded due to ML being unavailable
+    - RoboMakerDeploymentJob # Deprecated Service
+    - RoboMakerFleet # Deprecated Service
+    - RoboMakerRobot # Deprecated Service
     - RoboMakerSimulationJob
     - RoboMakerRobotApplication
     - RoboMakerSimulationApplication
-    - OpsWorksApp
-    - OpsWorksInstance
-    - OpsWorksLayer
-    - OpsWorksUserProfile
-    - OpsWorksCMBackup
-    - OpsWorksCMServer
-    - OpsWorksCMServerState
-    - CodeStarProject
-    - CodeStarConnection
-    - Cloud9Environment
-    - CloudSearchDomain
-    - RedshiftServerlessSnapshot
-    - RedshiftServerlessNamespace
-    - RedshiftServerlessWorkgroup
-    - BedrockCustomModel
-    - BedrockEvaluationJob
-    - BedrockFlowAlias
-    - BedrockModelCustomizationJob
-    - BedrockPrompt
-    - DynamoDBTableItem
-    - DocDBCluster
-    - DocDBElasticCluster
-    - DocDBInstance
-    - DocDBParameterGroup
-    - DocDBSnapshot
-    - EC2VerifiedAccessEndpoint
-    - EC2VerifiedAccessGroup
-    - EC2VerifiedAccessInstance
-    - EC2VerifiedAccessTrustProvider
-    - ElasticTranscoderPipeline
-    - ElasticTranscoderPreset
-    - InspectorAssessmentRun
-    - InspectorAssessmentTarget
-    - InspectorAssessmentTemplate
-    - LexBot
-    - LexIntent
-    - LexModelBuildingServiceBotAlias
-    - LexSlotType
-    - OSVPCEndpoint
-    - RekognitionDataset
-    - RekognitionProject
-    - SSMQuickSetupConfigurationManager
-    - ShieldProtection
-    - ShieldProtectionGroup
-    - TextractAdapter
-    - TextractAdapterVersion
-    - TranscribeLanguageModel
+    - OpsWorksApp # Deprecated service
+    - OpsWorksInstance # Deprecated service
+    - OpsWorksLayer # Deprecated service
+    - OpsWorksUserProfile # Deprecated service
+    - OpsWorksCMBackup # Deprecated service
+    - OpsWorksCMServer # Deprecated service
+    - OpsWorksCMServerState # Deprecated service
+    - CodeStarProject # Deprecated service
+    - CodeStarConnection # Deprecated service
+    - CodeStarNotification # Deprecated service
+    - Cloud9Environment # Deprecated service
+    - CloudSearchDomain # Deprecated service
+    - RedshiftServerlessSnapshot # Deprecated service
+    - RedshiftServerlessNamespace # Deprecated service
+    - RedshiftServerlessWorkgroup # Deprecated service
