@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.example</groupId>
+  <artifactId>java-s3sink</artifactId>
+  <version>1.0</version>
+  <packaging>jar</packaging>
+  <name>java-s3sink</name>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- Managed Service for Apache Flink 2.3 런타임 구성 (Java 17 / Flink 2.3.0 / KDA runtime 1.2.0) -->
+    <target.java.version>17</target.java.version>
+    <maven.compiler.release>${target.java.version}</maven.compiler.release>
+    <flink.version>2.3.0</flink.version>
+    <!-- Flink 2.x와 호환되는 유일한 AWS 커넥터 버전 -->
+    <aws.connector.version>6.0.0-2.0</aws.connector.version>
+    <kda.runtime.version>1.2.0</kda.runtime.version>
+    <jackson.version>2.22.2</jackson.version>
+    <log4j.version>2.26.1</log4j.version>
+    <main.class>com.example.app.App</main.class>
+  </properties>
+
+  <dependencies>
+    <!-- Flink 런타임이 제공하는 의존성: JAR에 포함하지 않는다(provided) -->
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-streaming-java</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-clients</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-runtime-web</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-connector-base</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- FileSink(S3 sink) — Flink 배포판에 기본 포함 -->
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-connector-files</artifactId>
+      <version>${flink.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- MSF 런타임 애플리케이션 속성(Runtime properties) 조회 -->
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-kinesisanalytics-runtime</artifactId>
+      <version>${kda.runtime.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Kinesis Data Streams source/sink (FLIP-27 KinesisStreamsSource) — JAR에 포함 -->
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-connector-aws-kinesis-streams</artifactId>
+      <version>${aws.connector.version}</version>
+    </dependency>
+
+    <!-- s3a:// 파일시스템 — 로컬 실행 시 필요, MSF에서는 런타임에 기본 탑재 -->
+    <dependency>
+      <groupId>org.apache.flink</groupId>
+      <artifactId>flink-s3-fs-hadoop</artifactId>
+      <version>${flink.version}</version>
+    </dependency>
+
+    <!-- JSON 직렬화/역직렬화 (Flink 내부 shaded Jackson과 별개) -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+
+    <!-- IDE 로컬 실행용 로깅. shade 단계에서 JAR에서 제외된다. -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
+      <version>${log4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <version>${log4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>${log4j.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>${project.artifactId}-${project.version}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.14.1</version>
+      </plugin>
+      <!-- MSF에 업로드할 uber JAR 생성: mvn package -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <artifactSet>
+                <excludes>
+                  <exclude>org.apache.flink:force-shading</exclude>
+                  <exclude>com.google.code.findbugs:jsr305</exclude>
+                  <exclude>org.slf4j:*</exclude>
+                  <exclude>org.apache.logging.log4j:*</exclude>
+                </excludes>
+              </artifactSet>
+              <filters>
+                <filter>
+                  <!-- 서명 파일이 포함되면 SecurityException이 발생할 수 있다 -->
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>${main.class}</mainClass>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
