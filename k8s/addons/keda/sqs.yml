@@ -6,7 +6,7 @@ metadata:
 spec:
   podIdentity:
     provider: aws
-    identityOwner: keda
+    identityOwner: keda  # keda(default) | workload
 ---
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
@@ -18,7 +18,7 @@ spec:
     name: <DEPLOYMENT_NAME>
   pollingInterval: 5
   cooldownPeriod: 10
-  minReplicaCount: 2
+  minReplicaCount: 1
   maxReplicaCount: 6
   triggers:
   - type: aws-sqs-queue
@@ -27,4 +27,4 @@ spec:
     metadata:
       queueURL: <SQS_QUEUE_URL>
       queueLength: "5"
-      awsRegion: "ap-northeast-2"
+      awsRegion: "us-east-1"
