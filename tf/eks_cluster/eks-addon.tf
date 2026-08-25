@@ -104,8 +104,23 @@ module "eks_blueprints_addons" {
     values = [<<-EOF
       prometheus:
         prometheusSpec:
-          scrapeInterval: "5s"
-          evaluationInterval: "5s"
+          scrapeInterval: 5s
+          evaluationInterval: 5s
+          podMonitorSelectorNilUsesHelmValues: false
+          serviceMonitorSelectorNilUsesHelmValues: false
+      
+      alertmanager:
+        enabled: true
+      kube-state-metrics:
+        enabled: true
+      prometheus-node-exporter:
+        enabled: true
+      prometheus-pushgateway:
+        enabled: true
+      grafana:
+        enabled: true
+        adminUser: admin
+        adminPassword: admin
     EOF
     ]
   }

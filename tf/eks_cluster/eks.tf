@@ -4,6 +4,9 @@ module "eks" {
   name               = "${var.project_name}-cluster"
   kubernetes_version = "1.36"
 
+  #######################################
+  # Change below after provision        #
+  #######################################
   endpoint_public_access = true
 
   vpc_id                   = aws_vpc.this.id
