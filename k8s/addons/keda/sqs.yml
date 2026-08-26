@@ -28,3 +28,23 @@ spec:
       queueURL: <SQS_QUEUE_URL>
       queueLength: "5"
       awsRegion: "us-east-1"
+  advanced:
+    horizontalPodAutoscalerConfig:
+      name: <DEPLOYMENT_NAME>
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 60
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 15
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 30
+            - type: Pods
+              value: 4
+              periodSeconds: 30
+          selectPolicy: Max
