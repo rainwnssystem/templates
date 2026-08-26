@@ -4,9 +4,6 @@ import json
 import datetime
 
 def lambda_handler(firehose_records_input, context):
-    print("Received records for processing from DeliveryStream: " + firehose_records_input['deliveryStreamArn']
-          + ", Region: " + firehose_records_input['region']
-          + ", and InvocationId: " + firehose_records_input['invocationId'])
 
     # Create return value.
     firehose_records_output = {'records': []}
