@@ -58,22 +58,15 @@ accounts:
       #     value: "(?i)(scop|scmp|sams)"
       # CloudTrailTrail:
       #   - "mytrail"
-      # IAMLoginProfile:
-      #   - "boseok"
-      # IAMPolicy:
-      #   - type: regex
-      #     value: "arn:aws:iam::.*:policy/RAM_put_event_policy"
-      # IAMRole:
-      #   - "OrganizationAccountAccessRole"
-      # IAMRolePolicyAttachment:
-      #   - "OrganizationAccountAccessRole -> AdministratorAccess"
-      # IAMUser:
-      #   - "boseok"
-      # IAMUserAccessKey:
-      #   - type: glob
-      #     value: "boseok -> *"
-      # IAMUserPolicyAttachment:
-      #   - "boseok -> AdministratorAccess"
+      IAMLoginProfile:
+        - "boseok"
+      IAMUser:
+        - "boseok"
+      IAMUserAccessKey:
+        - type: glob
+          value: "boseok -> *"
+      IAMUserPolicyAttachment:
+        - "boseok -> AdministratorAccess"
 
 resource-types:
   excludes:
