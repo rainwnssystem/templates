@@ -6,7 +6,7 @@ metadata:
 spec:
   destination:
     namespace: <NAMESPACE>
-    server: https://kubernetes.default.svc
+    server: https://kubernetes.default.svc  # server | name
   ignoreDifferences:
     - group: apps
       jsonPointers:
@@ -22,7 +22,7 @@ spec:
       kind: Secret
   project: default
   source:
-    path: manifest
+    path: <PATH>  # e.g. manifest/ 
     repoURL: <REPO_URL>
     targetRevision: HEAD  # <BRANCH> | HEAD , If use WriteBack, enter the branch
   syncPolicy:
