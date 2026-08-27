@@ -1,6 +1,6 @@
 regions:
   # - all
-  - __global__
+  - global
   - us-east-1
 
 blocklist:
@@ -13,6 +13,8 @@ bypass-alias-check-accounts:
 settings:
   IAMRole:
     IncludeServiceLinkedRoles: false
+  CloudWatchLogsLogGroup:
+    DisableDeletionProtection: true
   EC2Image:
     IncludeDisabled: true
     IncludeDeprecated: true
