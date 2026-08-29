@@ -22,16 +22,19 @@ logger.setLevel(logging.DEBUG)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info(f'Device: {device}')
 
-MEAN = [-0.1309, -0.1705, -0.2517]
-STD = [0.5924, 0.5669, 0.5778]
+MEAN = [0.5071, 0.4867, 0.4408]
+STD = [0.2675, 0.2565, 0.2761]
 
-W, H, C = 32, 32, 3
+IMAGE_SIZE = 32
+SOURCE_WIDTH, SOURCE_HEIGHT, CHANNELS = 32, 32, 3
+LABEL_KEY = b'coarse_labels'  # b'fine_labels' | b'coarse_labels'
+NUM_CLASSES = 20             # fine: 100 | coarse: 20
 
 
 class CustomDataset(Dataset):
     def __init__(self, data, transform=None):
         self.images = data[b'data']
-        self.labels = data[b'fine_labels']  # fine_labels | coarse_labels
+        self.labels = data[LABEL_KEY]
         self.transform = transform
 
     def __len__(self):
@@ -42,7 +45,9 @@ class CustomDataset(Dataset):
         label = self.labels[idx]
 
         if len(image.shape) == 1:
-            image = image.reshape(C, W, H).transpose(1, 2, 0)
+            image = image.reshape(
+                CHANNELS, SOURCE_HEIGHT, SOURCE_WIDTH
+            ).transpose(1, 2, 0)
 
         image = Image.fromarray(image)
 
@@ -53,12 +58,12 @@ class CustomDataset(Dataset):
 
 
 class CNN(nn.Module):
-    def __init__(self, num_classes=100):
+    def __init__(self, num_classes=NUM_CLASSES):
         super().__init__()
         self.features = nn.Sequential(
             # (channel count, output_features, kernel)
             # e.g. (3, 32, 3)  -> 3 channel(RGB), 32 -> 64 -> ..., 3 kernel
-            nn.Conv2d(C, 32, 3, padding=1, bias=False),
+            nn.Conv2d(CHANNELS, 32, 3, padding=1, bias=False),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(2),
@@ -108,8 +113,7 @@ def unpickle(file):
 
 def train(args):
     train_transform = transforms.Compose([
-        transforms.Resize((W, H)),
-        transforms.RandomCrop((W, H), padding=4),
+        transforms.RandomResizedCrop(IMAGE_SIZE),
         transforms.RandomHorizontalFlip(),
         # transforms.ColorJitter(brightness=0.2, contrast=0.2),
         transforms.ToTensor(),
@@ -117,7 +121,8 @@ def train(args):
     ])
 
     test_transform = transforms.Compose([
-        transforms.Resize((W, H)),
+        transforms.Resize(IMAGE_SIZE),
+        transforms.CenterCrop(IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize(MEAN, STD)
     ])
@@ -238,7 +243,8 @@ def model_fn(model_dir):
 
 
 _inference_transform = transforms.Compose([
-    transforms.Resize((32, 32)),
+    transforms.Resize(IMAGE_SIZE),
+    transforms.CenterCrop(IMAGE_SIZE),
     transforms.ToTensor(),
     transforms.Normalize(MEAN, STD),
 ])

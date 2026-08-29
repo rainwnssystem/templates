@@ -89,7 +89,8 @@ def train(args):
         keras.layers.Dense(128, activation='relu'),
         keras.layers.Dropout(0.3),
 
-        keras.layers.Dense(10, activation='softmax')  # multi: softmax | binary: sigmoid
+        # Keep raw logits here because the configured loss uses from_logits=True.
+        keras.layers.Dense(10)
     ])
 
     steps_per_epoch = tf.data.experimental.cardinality(train_dataset).numpy()

@@ -35,8 +35,10 @@ def train(args):
     df['ocean_proximity_encoded'] = label_encoder.fit_transform(df['ocean_proximity'])
     df.drop('ocean_proximity', axis=1, inplace=True)
 
-    x = df.drop('housing_median_age', axis=1).values
-    y = df['housing_median_age'].values
+    # Predict the median house value. Keep this order in sync with input_fn's
+    # endpoint contract below.
+    x = df.drop('median_house_value', axis=1).values
+    y = df['median_house_value'].values
 
     x_train, x_test, y_train, y_test = train_test_split(
         x, y, test_size=0.2, random_state=42
@@ -62,7 +64,9 @@ def train(args):
     print("r2:", r2)
 
     # ── inference sample ──
-    sample = np.array([[8.3252, 41.0, 6.9841, 1.0238, 322.0, 2.5556, 37.88, -122.23]])
+    # longitude, latitude, housing_median_age, population, median_income,
+    # average_rooms, average_bedrooms, ocean_proximity_encoded
+    sample = np.array([[-122.23, 37.88, 41.0, 322.0, 8.3252, 6.9841, 1.0238, 3.0]])
     print("sample prediction:", float(model.predict(sample)[0]))
 
     # ── save artifact for endpoint ──
@@ -83,8 +87,11 @@ def input_fn(request_body, content_type="application/json"):
     if content_type != "application/json":
         raise ValueError(f"Unsupported content type: {content_type}")
     payload = json.loads(request_body)
-    # {"instance": [8.3252, 41.0, ...]} 또는 {"instance": [[...], [...]]}
-    # ['longitude', 'latitude', 'housing_median_age', 'population', 'median_income', 'median_house_value', 'ocean_proximity', 'average_rooms', 'average_bedrooms'] 순서 입력
+    # {"instance": [-122.23, 37.88, ...]} 또는
+    # {"instance": [[...], [...]]}
+    # Input order: longitude, latitude, housing_median_age, population,
+    # median_income, average_rooms, average_bedrooms,
+    # ocean_proximity_encoded.
     arr = np.array(payload["instance"], dtype=float)
     if arr.ndim == 1:
         arr = arr.reshape(1, -1)

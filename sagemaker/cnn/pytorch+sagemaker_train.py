@@ -23,6 +23,7 @@ logger.info(f'Device: {device}')
 
 MEAN = [0.4913, 0.4821, 0.4465]
 STD = [0.2470, 0.2434, 0.2615]
+IMAGE_SIZE = 32
 
 
 class CNN(nn.Module):
@@ -76,8 +77,7 @@ def compression(args):
 
 def train(args):
     train_transform = transforms.Compose([
-        transforms.Resize((32, 32)),
-        transforms.RandomCrop(32, padding=4),
+        transforms.RandomResizedCrop(IMAGE_SIZE),
         transforms.RandomHorizontalFlip(),
         transforms.ColorJitter(brightness=0.2, contrast=0.2),
         transforms.ToTensor(),
@@ -85,7 +85,8 @@ def train(args):
     ])
 
     test_transform = transforms.Compose([
-        transforms.Resize((32, 32)),
+        transforms.Resize(IMAGE_SIZE),
+        transforms.CenterCrop(IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize(MEAN, STD)
     ])
@@ -205,7 +206,8 @@ def model_fn(model_dir):
 
 
 _inference_transform = transforms.Compose([
-    transforms.Resize((32, 32)),
+    transforms.Resize(IMAGE_SIZE),
+    transforms.CenterCrop(IMAGE_SIZE),
     transforms.ToTensor(),
     transforms.Normalize(MEAN, STD),
 ])
