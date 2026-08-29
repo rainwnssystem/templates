@@ -1,0 +1,1 @@
+aws-nuke run -c .\config.yaml -q --force --no-alias-check --no-dry-run
