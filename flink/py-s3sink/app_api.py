@@ -1,13 +1,3 @@
-#########################################################################################################
-#
-# Extract this python code(streaming_job.py) with flink-connector-aws-kinesis-streams.jar
-#
-# mvn package
-# zip flink-app.zip streaming_job.py flink-connector-aws-kinesis-streams.jar
-#
-#########################################################################################################
-
-
 import json
 import os
 
@@ -40,7 +30,11 @@ def main():
     source = FlinkKinesisConsumer(
         stream_name,
         SimpleStringSchema(),
-        {"aws.region": aws_region, "stream.initial.position": "LATEST"},
+        {
+            "aws.region": aws_region,
+            "stream.initial.position": "LATEST",
+            "flink.shard.idle.interval": "15000"
+        },
     )
 
     sink = (

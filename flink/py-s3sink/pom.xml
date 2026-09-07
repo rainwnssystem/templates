@@ -17,35 +17,23 @@
     <maven.compiler.release>17</maven.compiler.release>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.11.0</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-connector-aws-kinesis-streams</artifactId>
       <version>6.0.1-2.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-streaming-java</artifactId>
-      <version>2.3.0</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-clients</artifactId>
-      <version>2.3.0</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-table-planner-loader</artifactId>
-      <version>2.3.0</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-table-runtime</artifactId>
-      <version>2.3.0</version>
-      <scope>provided</scope>
     </dependency>
 
     <dependency>
@@ -59,6 +47,8 @@
       <artifactId>junit-jupiter-params</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- ... -->
   </dependencies>
 
   <build>
@@ -68,13 +58,10 @@
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.6.2</version>
         <configuration>
-          <transformers>
+          <transformers combine.children="append">
+            <!-- The service transformer is needed to merge META-INF/services files -->
             <transformer
-                    implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-            <transformer
-                    implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-              <mainClass>com.example.flinkapp.App</mainClass>
-            </transformer>
+              implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
             <!-- ... -->
           </transformers>
         </configuration>
@@ -87,6 +74,8 @@
           </execution>
         </executions>
       </plugin>
+
+      <!-- ... -->
     </plugins>
   </build>
 </project>
