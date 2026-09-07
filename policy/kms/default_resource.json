@@ -1,0 +1,15 @@
+{
+  "Sid": "Statement1",
+  "Effect": "Allow",
+  "Principal": {
+    "Service": "<SERVICENAME>.amazonaws.com"
+  },
+  "Action": [
+    "kms:Encrypt",
+    "kms:Decrypt",
+    "kms:GenerateDataKey",
+    "kms:CreateGrant",
+    "kms:DescribeKey"
+  ],
+  "Resource": "*"
+}

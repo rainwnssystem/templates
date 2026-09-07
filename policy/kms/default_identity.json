@@ -1,0 +1,14 @@
+{
+   "Sid": "cmk encryption permissions",
+   "Effect": "Allow",
+   "Action": [
+       "kms:Encrypt",
+       "kms:Decrypt",
+       "kms:GenerateDataKey",
+       "kms:DescribeKey",
+       "kms:CreateGrant"
+   ],
+   "Resource": [
+      "<KMS_KEY_ARN>"
+   ]
+}
