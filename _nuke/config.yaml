@@ -53,11 +53,6 @@ accounts:
   # 200148130345:  # 004
   856210586235:  # 003
     filters:
-      # __global__:
-      #   - type: regex
-      #     value: "(?i)(scop|scmp|sams)"
-      # CloudTrailTrail:
-      #   - "mytrail"
       IAMLoginProfile:
         - "boseok"
       IAMUser:
