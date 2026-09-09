@@ -1,0 +1,20 @@
+{
+  "Sid": "Statement1",
+  "Effect": "Allow",
+  "Principal": {
+    "Service": [
+      "infrastructure.kinesisanalytics.amazonaws.com",
+      "kinesisanalytics.amazonaws.com"
+    ]
+  },
+  "Action": [
+    "kms:Decrypt",
+    "kms:GenerateDataKey",
+    "kms:DescribeKey",
+    "kms:CreateGrant",
+    "kms:GenerateDataKeyWithoutPlaintext"
+  ],
+  "Resource": "*"
+}
+
+// ref: https://docs.aws.amazon.com/managed-flink/latest/java/manage-cmk-api.html
