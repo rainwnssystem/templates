@@ -1,0 +1,10 @@
+## ref: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html
+
+
+{
+  "http_method": "$context.httpMethod",
+  "path": "$context.path",
+  "name" : $input.json('$.name'),  ## "user1"
+  "age": $input.json('$.age'),     ## 123
+  "id": "$input.params('id')"      ## "id123"
+}

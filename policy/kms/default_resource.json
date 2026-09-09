@@ -7,9 +7,10 @@
   "Action": [
     "kms:Encrypt",
     "kms:Decrypt",
-    "kms:GenerateDataKey",
     "kms:CreateGrant",
-    "kms:DescribeKey"
+    "kms:DescribeKey",
+    "kms:GenerateDataKey",
+    "kms:GenerateDataKeyWithoutPlaintext"
   ],
   "Resource": "*"
 }

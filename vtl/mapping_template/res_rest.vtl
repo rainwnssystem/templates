@@ -1,0 +1,8 @@
+## ref: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html
+
+{
+  "statusCode": $input.json('$.statusCode'),
+  "name" : $input.json('$.body.name'),
+  "age": $input.json('$.body.age'),
+  "uuid": $input.json('$.body.id')
+}

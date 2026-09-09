@@ -4,9 +4,10 @@
    "Action": [
        "kms:Encrypt",
        "kms:Decrypt",
-       "kms:GenerateDataKey",
        "kms:DescribeKey",
-       "kms:CreateGrant"
+       "kms:CreateGrant",
+       "kms:GenerateDataKey",
+       "kms:GenerateDataKeyWithoutPlaintext"
    ],
    "Resource": [
       "<KMS_KEY_ARN>"
