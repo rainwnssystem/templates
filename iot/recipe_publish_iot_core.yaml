@@ -1,0 +1,29 @@
+RecipeFormatVersion: "2020-01-25"
+ComponentName: "com.example.average"
+ComponentVersion: "1.0.0"
+ComponentType: "aws.greengrass.generic"
+ComponentDescription: "Average component."
+ComponentPublisher: "Me"
+ComponentConfiguration:
+  DefaultConfiguration:
+    Message: "world"
+    accessControl:
+      aws.greengrass.ipc.mqttproxy:
+        com.example.average:mqttproxy:1:
+          policyDescription: "Allows access to publish to IoT Core."
+          operations:
+          - "aws.greengrass#PublishToIoTCore"
+          resources:
+          - "temperature/average"
+Manifests:
+- Platform:
+    os: "linux"
+  Name: "Linux"
+  Lifecycle:
+    install: |
+      python3 -m venv {work:path}/.venv
+      . .venv/bin/activate
+      pip install awsiotsdk
+    run: ". {work:path}/.venv/bin/activate && python3 {artifacts:path}/average.py"
+  Artifacts:
+  - Uri: "s3://project-bucket-856210586235-us-east-1-an/average.py"
