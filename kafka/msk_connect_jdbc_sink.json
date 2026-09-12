@@ -1,0 +1,12 @@
+{
+  "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+  "connection.url": "jdbc:<DB_TYPE>://<RDS_ENDPOINT>:<PORT>/<DB_NAME>",
+  "connection.user": "<USERNAME>",
+  "connection.password": "<PASSWORD>",
+  "topics": "<MSK_TOPIC_NAME>",
+  "tasks.max": "2",
+  "table.name.format": "<RDS_DBNAME>.<RDS_TABLENAME>",
+  "transforms": "wrapMessage",
+  "transforms.wrapMessage.type": "org.apache.kafka.connect.transforms.HoistField$Value",
+  "transforms.wrapMessage.field": "<RDS_COLUMN_NAME>"
+}
